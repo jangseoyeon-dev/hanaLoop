@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LuLayoutDashboard, LuFlaskConical } from "react-icons/lu";
+import { LuLayoutDashboard, LuDatabase, LuFlaskConical } from "react-icons/lu";
 import { useSidebarStore } from "@/shared/stores/sidebarStore";
 
 type MenuItem = {
@@ -13,8 +13,8 @@ type MenuItem = {
 
 const MENU: MenuItem[] = [
   { label: "대시보드", href: "/", icon: LuLayoutDashboard },
-  { label: "test1", href: "/test1", icon: LuFlaskConical },
-  { label: "test2", href: "/test2", icon: LuFlaskConical },
+  { label: "데이터관리", href: "/data-management", icon: LuDatabase },
+  { label: "배출계수 이력", href: "/test2", icon: LuFlaskConical },
 ];
 
 export function Sidebar() {

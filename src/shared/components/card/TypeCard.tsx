@@ -1,4 +1,3 @@
-"use client";
 export type ActivityType = "ELECTRICITY" | "MATERIAL" | "TRANSPORT";
 
 // 파란색 계열 팔레트 (메인 + 보조 톤)
