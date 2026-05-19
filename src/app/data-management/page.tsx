@@ -1,6 +1,5 @@
 import type { Prisma } from "@prisma/client";
 import type { ActivityRow } from "@/features/data-management/types";
-import type { ActivityType } from "@/shared/components/card/TypeCard";
 import { ActivityTable } from "@/features/data-management/components/table/ActivityTable";
 import { AddDataButton } from "@/features/data-management/components/button/AddDataButton";
 import { UploadButton } from "@/features/data-management/components/button/UploadButton";
@@ -37,11 +36,12 @@ async function fetchActivityRows(
     };
   }
   if (filters.typeCode) {
-    where.activityType = { code: filters.typeCode };
+    where.activityType = { category: filters.typeCode as Prisma.EnumActivityCategoryFilter };
   }
   if (filters.factorName) {
-    where.pcfResults = {
-      some: { emissionFactor: { factorName: filters.factorName } },
+    where.activityType = {
+      ...((where.activityType as object) ?? {}),
+      name: filters.factorName,
     };
   }
 
@@ -49,20 +49,16 @@ async function fetchActivityRows(
     where,
     orderBy: [{ activityDate: "desc" }, { id: "desc" }],
     include: {
-      activityType: { select: { code: true } },
-      pcfResults: {
-        where: filters.factorName
-          ? { emissionFactor: { factorName: filters.factorName } }
-          : undefined,
-        select: { carbonEmission: true },
-      },
+      activityType: { select: { code: true, name: true, category: true } },
+      pcfResults: { select: { carbonEmission: true } },
     },
   });
 
   return records.map((r) => ({
     id: r.id,
     activityDate: r.activityDate.toISOString().slice(0, 10),
-    type: r.activityType.code as ActivityType,
+    category: r.activityType.category,
+    typeName: r.activityType.name,
     description: r.description,
     amount: Number(r.amount),
     unit: r.unit,
@@ -104,7 +100,6 @@ export default async function DataManagement({
         </div>
       </header>
 
-      {/* 카드 영역 */}
       <section className="mb-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatTile
           label="유효 건수 (집계 대상)"

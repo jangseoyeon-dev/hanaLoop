@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/shared/lib/prisma";
 import { buildRowHashKey, rowHash8 } from "@/shared/lib/hash";
 import { findEmissionFactor } from "@/features/activity/lib/emission";
+import { resolveCategory } from "@/features/activity/lib/category";
 
 type ListQuery = {
   startDate: Date | null;
@@ -61,6 +62,7 @@ export async function GET(request: NextRequest) {
     activityDate: r.activityDate.toISOString().slice(0, 10),
     type: r.activityType.code,
     typeName: r.activityType.name,
+    category: r.activityType.category,
     description: r.description,
     amount: Number(r.amount),
     unit: r.unit,
@@ -90,13 +92,13 @@ type CreateBody = {
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as CreateBody;
 
-  const activityTypeCode = body.activity_type?.trim();
+  const activityTypeInput = body.activity_type?.trim();
   const description = body.description?.trim();
   const unit = body.unit?.trim();
   const dateStr = body.activity_date?.trim();
   const amount = Number(body.amount);
 
-  if (!activityTypeCode || !description || !unit || !dateStr) {
+  if (!activityTypeInput || !description || !unit || !dateStr) {
     return Response.json(
       { error: "필수 필드가 누락되었습니다." },
       { status: 400 },
@@ -109,12 +111,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const category = resolveCategory(activityTypeInput);
+  if (!category) {
+    return Response.json(
+      { error: `알 수 없는 활동 유형: ${activityTypeInput}` },
+      { status: 400 },
+    );
+  }
+
   const type = await prisma.activityType.findUnique({
-    where: { code: activityTypeCode },
+    where: { category_name: { category, name: description } },
   });
   if (!type) {
     return Response.json(
-      { error: `알 수 없는 활동 유형: ${activityTypeCode}` },
+      { error: `등록되지 않은 활동입니다: ${activityTypeInput} / ${description}` },
       { status: 400 },
     );
   }
@@ -139,11 +149,7 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  const factor = await findEmissionFactor({
-    activityTypeId: type.id,
-    factorName: description,
-    activityDate,
-  });
+  const factor = await findEmissionFactor({ activityTypeId: type.id });
 
   if (factor && !created.isDuplicate) {
     await prisma.pcfResult.create({

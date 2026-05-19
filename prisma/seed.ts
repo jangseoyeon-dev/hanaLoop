@@ -1,45 +1,46 @@
-import { PrismaClient } from "@prisma/client";
+import { ActivityCategory, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 const ACTIVITY_TYPES = [
-  { code: "ELECTRICITY", name: "전기", unit: "kWh" },
-  { code: "MATERIAL", name: "원소재", unit: "kg" },
-  { code: "TRANSPORT", name: "운송", unit: "ton-km" },
+  {
+    code: "KEPCO",
+    name: "한국전력",
+    category: ActivityCategory.ELECTRICITY,
+    unit: "kWh",
+  },
+  {
+    code: "PLASTIC_1",
+    name: "플라스틱 1",
+    category: ActivityCategory.MATERIAL,
+    unit: "kg",
+  },
+  {
+    code: "PLASTIC_2",
+    name: "플라스틱 2",
+    category: ActivityCategory.MATERIAL,
+    unit: "kg",
+  },
+  {
+    code: "TRUCK",
+    name: "트럭",
+    category: ActivityCategory.TRANSPORT,
+    unit: "ton-km",
+  },
 ] as const;
 
 const EMISSION_FACTORS = [
-  {
-    typeCode: "ELECTRICITY",
-    factorName: "한국전력 기본값",
-    factor: 0.456,
-    unit: "kgCO2e/kWh",
-  },
-  {
-    typeCode: "MATERIAL",
-    factorName: "플라스틱 1",
-    factor: 2.3,
-    unit: "kgCO2e/kg",
-  },
-  {
-    typeCode: "MATERIAL",
-    factorName: "플라스틱 2",
-    factor: 3.2,
-    unit: "kgCO2e/kg",
-  },
-  {
-    typeCode: "TRANSPORT",
-    factorName: "트럭",
-    factor: 3.5,
-    unit: "kgCO2e/ton-km",
-  },
+  { typeCode: "KEPCO", factor: 0.456, unit: "kgCO2e/kWh" },
+  { typeCode: "PLASTIC_1", factor: 2.3, unit: "kgCO2e/kg" },
+  { typeCode: "PLASTIC_2", factor: 3.2, unit: "kgCO2e/kg" },
+  { typeCode: "TRUCK", factor: 3.5, unit: "kgCO2e/ton-km" },
 ] as const;
 
 async function main() {
   for (const t of ACTIVITY_TYPES) {
     await prisma.activityType.upsert({
       where: { code: t.code },
-      update: { name: t.name, unit: t.unit },
+      update: { name: t.name, category: t.category, unit: t.unit },
       create: t,
     });
   }
@@ -53,7 +54,7 @@ async function main() {
     if (!activityTypeId) continue;
 
     const existing = await prisma.emissionFactor.findFirst({
-      where: { activityTypeId, factorName: f.factorName },
+      where: { activityTypeId },
       orderBy: { version: "desc" },
     });
     if (existing) continue;
@@ -61,7 +62,6 @@ async function main() {
     await prisma.emissionFactor.create({
       data: {
         activityTypeId,
-        factorName: f.factorName,
         factor: f.factor,
         unit: f.unit,
         version: 1,

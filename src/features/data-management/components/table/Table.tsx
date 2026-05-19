@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ActivityRow } from "@/features/data-management/types";
 import { formatNumber } from "@/shared/lib/format";
+import { TYPE_LABEL } from "@/shared/components/card/TypeCard";
 import { Pagination } from "./Pagination";
 import { Th } from "./Th";
 
@@ -33,6 +34,7 @@ export function Table({
             <tr className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
               <Th>발생일</Th>
               <Th>유형</Th>
+              <Th>활동</Th>
               <Th>설명</Th>
               <Th align="right">수량</Th>
               <Th>단위</Th>
@@ -44,7 +46,7 @@ export function Table({
           <tbody className="divide-y divide-slate-100">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-12">
+                <td colSpan={9} className="px-3 py-12">
                   <div className="flex flex-col items-center justify-center text-center">
                     <div className="flex size-12 items-center justify-center rounded-full bg-slate-50 text-2xl">
                       📭
@@ -67,8 +69,9 @@ export function Table({
                   className="cursor-pointer text-slate-700 transition-colors hover:bg-slate-100"
                 >
                   <td className="px-3 py-2">{r.activityDate}</td>
-                  <td className="px-3 py-2">{r.type}</td>
-                  <td className="px-3 py-2">{r.description}</td>
+                  <td className="px-3 py-2">{TYPE_LABEL[r.category]}</td>
+                  <td className="px-3 py-2">{r.typeName}</td>
+                  <td className="px-3 py-2 text-slate-500">{r.description}</td>
                   <td className="px-3 py-2 text-right tabular-nums">
                     {formatNumber(r.amount)}
                   </td>

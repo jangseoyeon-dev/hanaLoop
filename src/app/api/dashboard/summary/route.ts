@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { Prisma } from "@prisma/client";
+import { ActivityCategory, Prisma } from "@prisma/client";
 import { prisma } from "@/shared/lib/prisma";
 
 export async function GET(request: NextRequest) {
@@ -17,29 +17,25 @@ export async function GET(request: NextRequest) {
   const rows = await prisma.activityData.findMany({
     where,
     select: {
-      activityType: { select: { code: true, name: true } },
+      activityType: { select: { category: true } },
       pcfResults: { select: { carbonEmission: true } },
     },
   });
 
-  const totalsByCode = new Map<string, { name: string; total: number }>();
+  const totalsByCategory = new Map<ActivityCategory, number>();
   let total = 0;
 
   for (const r of rows) {
     const emission = r.pcfResults.reduce((s, p) => s + p.carbonEmission, 0);
     total += emission;
-    const prev = totalsByCode.get(r.activityType.code);
-    totalsByCode.set(r.activityType.code, {
-      name: r.activityType.name,
-      total: (prev?.total ?? 0) + emission,
-    });
+    const cat = r.activityType.category;
+    totalsByCategory.set(cat, (totalsByCategory.get(cat) ?? 0) + emission);
   }
 
-  const typeTotals = Array.from(totalsByCode.entries()).map(
-    ([code, { name, total }]) => ({
-      type: code,
-      name,
-      total: Number(total.toFixed(2)),
+  const typeTotals = Array.from(totalsByCategory.entries()).map(
+    ([category, value]) => ({
+      category,
+      total: Number(value.toFixed(2)),
     }),
   );
 

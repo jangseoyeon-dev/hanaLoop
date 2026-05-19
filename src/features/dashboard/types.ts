@@ -1,7 +1,7 @@
-import type { ActivityType } from "@/shared/components/card/TypeCard";
+import type { ActivityCategory } from "@/shared/components/card/TypeCard";
 
 export type TypeTotal = {
-  type: ActivityType;
+  category: ActivityCategory;
   total: number;
 };
 

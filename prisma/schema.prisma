@@ -7,15 +7,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ActivityCategory {
+  ELECTRICITY
+  MATERIAL
+  TRANSPORT
+}
+
 model ActivityType {
   id              Int              @id @default(autoincrement())
   code            String           @unique
   name            String
+  category        ActivityCategory
   unit            String           @default("") @db.VarChar(20)
 
   activityData    ActivityData[]
   emissionFactors EmissionFactor[]
 
+  @@unique([category, name])
   @@map("activity_types")
 }
 
@@ -60,11 +68,11 @@ model EmissionFactor {
   activityTypeId Int          @map("activity_type_id")
   activityType   ActivityType @relation(fields: [activityTypeId], references: [id])
 
-  factorName     String       @map("factor_name")
   factor         Float
   unit           String
 
   version        Int          @default(1)
+  isActive       Boolean      @default(false) @map("is_active")
 
   startDate      DateTime?    @map("start_date")
   endDate        DateTime?    @map("end_date")

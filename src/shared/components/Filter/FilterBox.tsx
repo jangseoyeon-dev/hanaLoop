@@ -2,9 +2,23 @@
 import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FilterField } from "./FilterField";
+import {
+  TYPE_LABEL,
+  type ActivityCategory,
+} from "@/shared/components/card/TypeCard";
 
-type ActivityTypeOption = { id: number; code: string; name: string };
-type EmissionFactorOption = { factorName: string; typeCode: string };
+const CATEGORY_ORDER: ActivityCategory[] = [
+  "ELECTRICITY",
+  "MATERIAL",
+  "TRANSPORT",
+];
+
+type ActivityTypeOption = {
+  id: number;
+  code: string;
+  name: string;
+  category: ActivityCategory;
+};
 
 export function FilterBox() {
   const router = useRouter();
@@ -14,11 +28,10 @@ export function FilterBox() {
 
   const startDate = searchParams.get("startDate") ?? "";
   const endDate = searchParams.get("endDate") ?? "";
-  const selectedType = searchParams.get("typeCode") ?? "";
-  const selectedProduct = searchParams.get("factorName") ?? "";
+  const selectedCategory = searchParams.get("typeCode") ?? "";
+  const selectedName = searchParams.get("factorName") ?? "";
 
   const [types, setTypes] = useState<ActivityTypeOption[]>([]);
-  const [factors, setFactors] = useState<EmissionFactorOption[]>([]);
 
   const updateParam = (patch: Record<string, string>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -38,24 +51,14 @@ export function FilterBox() {
     const controller = new AbortController();
     (async () => {
       try {
-        const [typesRes, factorsRes] = await Promise.all([
-          fetch("/api/activity-types", { signal: controller.signal }),
-          fetch("/api/emission-factors", { signal: controller.signal }),
-        ]);
-        if (!typesRes.ok) {
-          throw new Error(`activity-types HTTP ${typesRes.status}`);
-        }
-        if (!factorsRes.ok) {
-          throw new Error(`emission-factors HTTP ${factorsRes.status}`);
-        }
-        const typesJson = (await typesRes.json().catch(() => null)) as {
+        const res = await fetch("/api/activity-types", {
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`activity-types HTTP ${res.status}`);
+        const json = (await res.json().catch(() => null)) as {
           data?: ActivityTypeOption[];
         } | null;
-        const factorsJson = (await factorsRes.json().catch(() => null)) as {
-          data?: EmissionFactorOption[];
-        } | null;
-        setTypes(typesJson?.data ?? []);
-        setFactors(factorsJson?.data ?? []);
+        setTypes(json?.data ?? []);
       } catch (e) {
         if ((e as Error).name !== "AbortError") console.error(e);
       }
@@ -64,23 +67,22 @@ export function FilterBox() {
   }, []);
 
   useEffect(() => {
-    if (!selectedProduct || factors.length === 0) return;
-    const stillValid = factors.some(
-      (f) =>
-        f.factorName === selectedProduct &&
-        (!selectedType || f.typeCode === selectedType),
+    if (!selectedName || types.length === 0) return;
+    const stillValid = types.some(
+      (t) =>
+        t.name === selectedName &&
+        (!selectedCategory || t.category === selectedCategory),
     );
     if (!stillValid) updateParam({ factorName: "" });
-    // updateParam은 stable하지 않지만, 의존성에 넣으면 매 렌더마다 재실행 — selectedType/Product/factors 기준으로만 동작하면 충분.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedType, selectedProduct, factors]);
+  }, [selectedCategory, selectedName, types]);
 
-  const filteredProducts = selectedType
-    ? factors.filter((f) => f.typeCode === selectedType)
-    : factors;
+  const filteredNames = selectedCategory
+    ? types.filter((t) => t.category === selectedCategory)
+    : types;
 
   const hasActiveFilter = Boolean(
-    startDate || endDate || selectedType || selectedProduct,
+    startDate || endDate || selectedCategory || selectedName,
   );
 
   const resetFilters = () => {
@@ -112,33 +114,30 @@ export function FilterBox() {
         </FilterField>
         <FilterField label="활동유형">
           <select
-            value={selectedType}
+            value={selectedCategory}
             onChange={(e) =>
               updateParam({ typeCode: e.target.value, factorName: "" })
             }
             className="w-40 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
           >
             <option value="">전체</option>
-            {types.map((t) => (
-              <option key={t.code} value={t.code}>
-                {t.name}
+            {CATEGORY_ORDER.map((cat) => (
+              <option key={cat} value={cat}>
+                {TYPE_LABEL[cat]}
               </option>
             ))}
           </select>
         </FilterField>
-        <FilterField label="제품/품목">
+        <FilterField label="활동">
           <select
-            value={selectedProduct}
+            value={selectedName}
             onChange={(e) => updateParam({ factorName: e.target.value })}
             className="w-40 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
           >
             <option value="">전체</option>
-            {filteredProducts.map((p) => (
-              <option
-                key={`${p.typeCode}|${p.factorName}`}
-                value={p.factorName}
-              >
-                {p.factorName}
+            {filteredNames.map((t) => (
+              <option key={t.code} value={t.name}>
+                {t.name}
               </option>
             ))}
           </select>

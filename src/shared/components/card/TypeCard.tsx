@@ -1,19 +1,20 @@
-export type ActivityType = "ELECTRICITY" | "MATERIAL" | "TRANSPORT";
+import { ActivityCategory } from "@prisma/client";
 
-// 파란색 계열 팔레트 (메인 + 보조 톤)
-export const TYPE_COLOR: Record<ActivityType, string> = {
-  ELECTRICITY: "#2563eb", // brand-600
-  MATERIAL: "#0ea5e9", // sky-500
-  TRANSPORT: "#6366f1", // indigo-500
+export { ActivityCategory };
+
+export const TYPE_COLOR: Record<ActivityCategory, string> = {
+  ELECTRICITY: "#2563eb",
+  MATERIAL: "#0ea5e9",
+  TRANSPORT: "#6366f1",
 };
 
-export const TYPE_ICON: Record<ActivityType, string> = {
+export const TYPE_ICON: Record<ActivityCategory, string> = {
   ELECTRICITY: "⚡",
   MATERIAL: "🧱",
   TRANSPORT: "🚚",
 };
 
-export const TYPE_LABEL: Record<ActivityType, string> = {
+export const TYPE_LABEL: Record<ActivityCategory, string> = {
   ELECTRICITY: "전기",
   MATERIAL: "원소재",
   TRANSPORT: "운송",
@@ -24,15 +25,15 @@ function formatKg(n: number): string {
 }
 
 export function TypeCard({
-  type,
+  category,
   value,
   ratio,
 }: {
-  type: ActivityType;
+  category: ActivityCategory;
   value: number;
   ratio: number;
 }) {
-  const color = TYPE_COLOR[type];
+  const color = TYPE_COLOR[category];
   return (
     <div className="group rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition hover:border-brand-200 hover:shadow-md">
       <div className="flex items-start justify-between">
@@ -40,7 +41,7 @@ export function TypeCard({
           className="flex size-10 items-center justify-center rounded-xl text-lg"
           style={{ backgroundColor: color + "14", color }}
         >
-          {TYPE_ICON[type]}
+          {TYPE_ICON[category]}
         </div>
         <div
           className="rounded-full px-2 py-0.5 text-xs font-medium"
@@ -50,7 +51,7 @@ export function TypeCard({
         </div>
       </div>
       <div className="mt-4 text-xs font-medium text-slate-500">
-        {TYPE_LABEL[type]}
+        {TYPE_LABEL[category]}
       </div>
       <div className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
         {formatKg(value)}

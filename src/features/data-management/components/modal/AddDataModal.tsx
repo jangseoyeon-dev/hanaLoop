@@ -1,18 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Modal from "react-modal";
 import { toast } from "sonner";
+import {
+  CATEGORY_TO_KOREAN,
+  resolveCategory,
+} from "@/features/activity/lib/category";
+import {
+  TYPE_LABEL,
+  type ActivityCategory,
+} from "@/shared/components/card/TypeCard";
 
 type ActivityTypeOption = {
   id: number;
   code: string;
   name: string;
+  category: ActivityCategory;
   unit: string;
 };
 
 const UNIT_FORMAT = /^[A-Za-z0-9·²³./\-]+$/;
+const CATEGORY_ORDER: ActivityCategory[] = [
+  "ELECTRICITY",
+  "MATERIAL",
+  "TRANSPORT",
+];
 
 export function AddDataModal({
   isAddModalOpen,
@@ -26,8 +40,8 @@ export function AddDataModal({
 
   const INITIAL_FORM = {
     activity_date: "",
-    activity_type: "",
-    description: "",
+    category: "" as ActivityCategory | "",
+    name: "",
     amount: "",
     unit: "",
   };
@@ -35,7 +49,6 @@ export function AddDataModal({
   type FormState = typeof INITIAL_FORM;
   type FieldErrors = Partial<Record<keyof FormState, string>>;
 
-  const DESCRIPTION_MAX = 100;
   const UNIT_MAX = 50;
   const AMOUNT_MAX = 1_000_000_000;
 
@@ -69,16 +82,39 @@ export function AddDataModal({
     return () => controller.abort();
   }, [isAddModalOpen]);
 
+  const namesByCategory = useMemo(() => {
+    const m = new Map<ActivityCategory, ActivityTypeOption[]>();
+    for (const opt of typeOptions) {
+      const arr = m.get(opt.category) ?? [];
+      arr.push(opt);
+      m.set(opt.category, arr);
+    }
+    return m;
+  }, [typeOptions]);
+
   const updateField = <K extends keyof FormState>(
     key: K,
     value: FormState[K]
   ) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "category" && prev.category !== value) {
+        next.name = "";
+        next.unit = "";
+      }
+      if (key === "name" && typeof value === "string") {
+        const matched = typeOptions.find(
+          (opt) => opt.category === prev.category && opt.name === value,
+        );
+        if (matched) next.unit = matched.unit;
+      }
+      return next;
+    });
     setFieldErrors((prev) => {
       if (!prev[key]) return prev;
-      const next = { ...prev };
-      delete next[key];
-      return next;
+      const cp = { ...prev };
+      delete cp[key];
+      return cp;
     });
   };
 
@@ -91,20 +127,19 @@ export function AddDataModal({
       errors.activity_date = "올바른 날짜 형식이 아닙니다.";
     }
 
-    if (!state.activity_type) {
-      errors.activity_type = "유형을 선택해 주세요.";
-    } else if (
-      typeOptions.length > 0 &&
-      !typeOptions.some((opt) => opt.code === state.activity_type)
-    ) {
-      errors.activity_type = "허용되지 않은 유형입니다.";
+    if (!state.category) {
+      errors.category = "활동 유형을 선택해 주세요.";
     }
 
-    const description = state.description.trim();
-    if (!description) {
-      errors.description = "설명을 입력해 주세요.";
-    } else if (description.length > DESCRIPTION_MAX) {
-      errors.description = `설명은 ${DESCRIPTION_MAX}자 이하여야 합니다.`;
+    if (!state.name) {
+      errors.name = "활동을 선택해 주세요.";
+    } else if (
+      state.category &&
+      !typeOptions.some(
+        (opt) => opt.category === state.category && opt.name === state.name,
+      )
+    ) {
+      errors.name = "유형과 일치하는 활동이 없습니다.";
     }
 
     const amountStr = state.amount.trim();
@@ -130,12 +165,12 @@ export function AddDataModal({
       errors.unit = `단위는 ${UNIT_MAX}자 이하여야 합니다.`;
     } else if (!UNIT_FORMAT.test(unit)) {
       errors.unit = "단위는 영문/숫자/·/²/³/-/. 만 사용할 수 있습니다.";
-    } else if (state.activity_type) {
+    } else if (state.category && state.name) {
       const expected = typeOptions.find(
-        (opt) => opt.code === state.activity_type,
+        (opt) => opt.category === state.category && opt.name === state.name,
       )?.unit;
       if (expected && unit.toLowerCase() !== expected.toLowerCase()) {
-        errors.unit = `선택한 유형의 단위는 "${expected}" 여야 합니다.`;
+        errors.unit = `해당 활동의 단위는 "${expected}" 여야 합니다.`;
       }
     }
 
@@ -152,6 +187,10 @@ export function AddDataModal({
       return;
     }
 
+    if (!form.category) return;
+    const category = resolveCategory(form.category);
+    if (!category) return;
+
     setIsSubmitting(true);
     setFieldErrors({});
 
@@ -161,8 +200,8 @@ export function AddDataModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           activity_date: form.activity_date,
-          activity_type: form.activity_type,
-          description: form.description.trim(),
+          activity_type: form.category,
+          description: form.name,
           amount: Number(form.amount),
           unit: form.unit.trim(),
         }),
@@ -187,6 +226,11 @@ export function AddDataModal({
       setIsSubmitting(false);
     }
   };
+
+  const namesForSelected =
+    form.category && form.category in TYPE_LABEL
+      ? namesByCategory.get(form.category as ActivityCategory) ?? []
+      : [];
 
   return (
     <Modal
@@ -222,34 +266,43 @@ export function AddDataModal({
             />
           </Field>
 
-          <Field label="유형" required error={fieldErrors.activity_type}>
+          <Field label="활동 유형" required error={fieldErrors.category}>
             <select
-              value={form.activity_type}
-              onChange={(e) => updateField("activity_type", e.target.value)}
-              aria-invalid={Boolean(fieldErrors.activity_type)}
-              className={inputClassFor(fieldErrors.activity_type)}
+              value={form.category}
+              onChange={(e) =>
+                updateField("category", e.target.value as ActivityCategory)
+              }
+              aria-invalid={Boolean(fieldErrors.category)}
+              className={inputClassFor(fieldErrors.category)}
             >
               <option value="" disabled>
                 선택
               </option>
-              {typeOptions.map((opt) => (
-                <option key={opt.code} value={opt.code}>
-                  {opt.name}
+              {CATEGORY_ORDER.map((cat) => (
+                <option key={cat} value={cat}>
+                  {CATEGORY_TO_KOREAN[cat]}
                 </option>
               ))}
             </select>
           </Field>
 
-          <Field label="설명" required error={fieldErrors.description}>
-            <input
-              type="text"
-              value={form.description}
-              onChange={(e) => updateField("description", e.target.value)}
-              placeholder="예: 한국전력, 플라스틱 1, 트럭"
-              maxLength={DESCRIPTION_MAX}
-              aria-invalid={Boolean(fieldErrors.description)}
-              className={inputClassFor(fieldErrors.description)}
-            />
+          <Field label="설명 (활동)" required error={fieldErrors.name}>
+            <select
+              value={form.name}
+              onChange={(e) => updateField("name", e.target.value)}
+              disabled={!form.category}
+              aria-invalid={Boolean(fieldErrors.name)}
+              className={inputClassFor(fieldErrors.name)}
+            >
+              <option value="" disabled>
+                {form.category ? "선택" : "활동 유형을 먼저 선택"}
+              </option>
+              {namesForSelected.map((opt) => (
+                <option key={opt.code} value={opt.name}>
+                  {opt.name}
+                </option>
+              ))}
+            </select>
           </Field>
 
           <div className="grid grid-cols-[1fr_140px] gap-3">
@@ -278,7 +331,6 @@ export function AddDataModal({
               />
             </Field>
           </div>
-
         </div>
 
         <div className="flex justify-end gap-2 border-t border-slate-100 bg-slate-50/40 px-6 py-4">
