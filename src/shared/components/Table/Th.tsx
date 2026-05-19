@@ -7,7 +7,7 @@ export function Th({
 }) {
   return (
     <th
-      className={`px-6 py-3 font-medium ${
+      className={`px-3 py-2 font-medium ${
         align === "right" ? "text-right" : "text-left"
       }`}
     >
