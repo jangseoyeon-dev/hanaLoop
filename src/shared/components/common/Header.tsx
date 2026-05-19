@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { FaBars, FaXmark } from "react-icons/fa6";
-import { useSidebarStore } from "../../stores/sidebarStore";
+import { useSidebarStore } from "@/shared/stores/sidebarStore";
 
 export function Header() {
   const isOpen = useSidebarStore((s) => s.isOpen);
