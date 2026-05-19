@@ -8,6 +8,7 @@ import { FilterBox } from "@/shared/components/Filter/FilterBox";
 import { Table } from "@/shared/components/Table/Table";
 import { formatNumber } from "@/shared/lib/format";
 import { useState } from "react";
+import { LuPlus, LuUpload } from "react-icons/lu";
 import { CalculationBasisModal } from "@/shared/components/modal/CalculationBasisModal";
 
 export default function DataManagement() {
@@ -27,13 +28,31 @@ export default function DataManagement() {
 
   return (
     <div className="space-y-6 p-6 md:p-5">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-          데이터 관리
-        </h1>
-        <p className="text-sm text-slate-500">
-          탄소 배출 활동 데이터를 등록·수정·삭제하고 중복 항목을 검토합니다.
-        </p>
+      <header className="flex justify-between content-between space-y-1">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            데이터 관리
+          </h1>
+          <p className="text-sm text-slate-500">
+            탄소 배출 활동 데이터를 등록·수정·삭제하고 중복 항목을 검토합니다.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/10"
+          >
+            <LuUpload className="h-4 w-4 text-slate-500" />
+            엑셀 업로드
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/30"
+          >
+            <LuPlus className="h-4 w-4" />
+            데이터 추가
+          </button>
+        </div>
       </header>
       <section className="mb-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatTile
