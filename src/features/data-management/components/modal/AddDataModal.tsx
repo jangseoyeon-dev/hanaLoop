@@ -20,21 +20,28 @@ export function AddDataModal({
 }) {
   const closeModal = () => setIsAddModalOpen(false);
 
-  const [activityDate, setActivityDate] = useState("");
-  const [type, setType] = useState<ActivityTypeValue | "">("");
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
-  const [unit, setUnit] = useState("");
+  const INITIAL_FORM = {
+    activity_date: "",
+    activity_type: "" as ActivityTypeValue | "",
+    description: "",
+    amount: "",
+    unit: "",
+  };
+
+  const [form, setForm] = useState(INITIAL_FORM);
+
+  const updateField = <K extends keyof typeof INITIAL_FORM>(
+    key: K,
+    value: (typeof INITIAL_FORM)[K]
+  ) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log({
-      activityDate,
-      type,
-      description,
-      amount: Number(amount),
-      unit,
+      ...form,
+      amount: Number(form.amount),
     });
+    setForm(INITIAL_FORM);
     closeModal();
   };
 
@@ -65,8 +72,8 @@ export function AddDataModal({
           <Field label="발생일" required>
             <input
               type="date"
-              value={activityDate}
-              onChange={(e) => setActivityDate(e.target.value)}
+              value={form.activity_date}
+              onChange={(e) => updateField("activity_date", e.target.value)}
               required
               className={inputClass}
             />
@@ -74,8 +81,10 @@ export function AddDataModal({
 
           <Field label="유형" required>
             <select
-              value={type}
-              onChange={(e) => setType(e.target.value as ActivityTypeValue)}
+              value={form.activity_type}
+              onChange={(e) =>
+                updateField("activity_type", e.target.value as ActivityTypeValue)
+              }
               required
               className={inputClass}
             >
@@ -93,8 +102,8 @@ export function AddDataModal({
           <Field label="설명" required>
             <input
               type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={form.description}
+              onChange={(e) => updateField("description", e.target.value)}
               placeholder="예: 한국전력, 플라스틱 1, 트럭"
               required
               className={inputClass}
@@ -106,9 +115,9 @@ export function AddDataModal({
               <input
                 type="text"
                 inputMode="decimal"
-                value={amount}
+                value={form.amount}
                 onChange={(e) =>
-                  setAmount(e.target.value.replace(/[^0-9.]/g, ""))
+                  updateField("amount", e.target.value.replace(/[^0-9.]/g, ""))
                 }
                 placeholder="0"
                 required
@@ -118,8 +127,8 @@ export function AddDataModal({
             <Field label="단위" required>
               <input
                 type="text"
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
+                value={form.unit}
+                onChange={(e) => updateField("unit", e.target.value)}
                 placeholder="kWh, kg, ton-km"
                 required
                 className={inputClass}
