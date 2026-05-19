@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# Claude Code (개인 설정 — 커밋 금지)
+.claude/settings.local.json
+
 # debug
 npm-debug.log*
 yarn-debug.log*
@@ -32,6 +35,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
