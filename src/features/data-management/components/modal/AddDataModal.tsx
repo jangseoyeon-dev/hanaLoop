@@ -139,6 +139,9 @@ export function AddDataModal({
           <button
             type="submit"
             className="inline-flex items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/30"
+            onClick={() => {
+              console.log("추가");
+            }}
           >
             추가
           </button>

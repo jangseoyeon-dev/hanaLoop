@@ -1,4 +1,3 @@
-"use client";
 export function TotalCard({ total }: { total: number }) {
   function formatKg(n: number): string {
     return new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 1 }).format(

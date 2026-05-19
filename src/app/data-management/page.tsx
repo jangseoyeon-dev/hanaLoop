@@ -1,18 +1,9 @@
-"use client";
-
-import {
-  type ActivityRow,
-  activityRowsMock,
-} from "@/features/data-management/mock";
+import { activityRowsMock } from "@/features/data-management/mock";
+import { ActivityTable } from "@/features/data-management/components/table/ActivityTable";
+import { AddDataButton } from "@/features/data-management/components/button/AddDataButton";
+import { UploadButton } from "@/features/data-management/components/button/UploadButton";
 import { FilterBox } from "@/shared/components/filter/FilterBox";
-import { Table } from "@/shared/components/table/Table";
 import { formatNumber } from "@/shared/lib/format";
-import { useState } from "react";
-import { LuPlus, LuUpload } from "react-icons/lu";
-import { CalculationBasisModal } from "@/shared/components/modals/CalculationBasisModal";
-import { AddDataModal } from "@/shared/components/modals/AddDataModal";
-
-import * as XLSX from "xlsx";
 
 export default function DataManagement() {
   const rows = activityRowsMock;
@@ -21,37 +12,6 @@ export default function DataManagement() {
   const totalCo2e = rows
     .filter((r) => !r.isDuplicate)
     .reduce((sum, r) => sum + r.co2e, 0);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedRow, setSelectedRow] = useState<ActivityRow | null>(null);
-  const openRow = (r: ActivityRow) => {
-    setSelectedRow(r);
-    setIsModalOpen(true);
-  };
-
-  // 데이터 추가 모달 여부
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  // 엑셀 업로드한 데이터
-  const [excelData, setExcelData] = useState([]);
-  console.log("excelData", excelData);
-
-  const handleFileUpload = (e: any) => {
-    const file = e.target.files[0];
-    const reader = new FileReader();
-
-    reader.onload = (event: any) => {
-      const data = new Uint8Array(event.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const json: any = XLSX.utils.sheet_to_json(worksheet);
-      setExcelData(json);
-      console.log("변환된 데이터:", json);
-    };
-    if (file) {
-      reader.readAsArrayBuffer(file);
-    }
-  };
 
   return (
     <div className="space-y-6 p-6 md:p-5">
@@ -65,24 +25,8 @@ export default function DataManagement() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/10">
-            <LuUpload className="h-4 w-4 text-slate-500" />
-            엑셀 업로드
-            <input
-              type="file"
-              accept=".xlsx, .xls"
-              onChange={handleFileUpload}
-              className="sr-only"
-            />
-          </label>
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/30"
-            onClick={() => setIsAddModalOpen(true)}
-          >
-            <LuPlus className="h-4 w-4" />
-            데이터 추가
-          </button>
+          <UploadButton />
+          <AddDataButton />
         </div>
       </header>
 
@@ -109,20 +53,7 @@ export default function DataManagement() {
       </section>
 
       <FilterBox />
-      <div className="overflow-x-auto mt-5">
-        <Table rows={rows} onRowClick={openRow} />
-      </div>
-      {/* 각 로우 클릭시 계산 근거 모달 */}
-      <CalculationBasisModal
-        isModalOpen={isModalOpen}
-        setIsModalOpen={setIsModalOpen}
-        selectedRow={selectedRow}
-      />
-      {/* 데이터 추가 모달 */}
-      <AddDataModal
-        isAddModalOpen={isAddModalOpen}
-        setIsAddModalOpen={setIsAddModalOpen}
-      />
+      <ActivityTable rows={rows} />
     </div>
   );
 }
