@@ -1,58 +1,48 @@
 import type { EmissionFactorRow } from "@/features/emission-factors/types";
-import type { ActivityType } from "@/shared/components/card/TypeCard";
 import { prisma } from "@/shared/lib/prisma";
 import { EmissionFactorTable } from "@/features/emission-factors/components/table/EmissionFactorTable";
 import { AddVersionButton } from "@/features/emission-factors/components/button/AddVersionButton";
 
 export const dynamic = "force-dynamic";
 
-const KNOWN_TYPES: ReadonlySet<ActivityType> = new Set([
-  "ELECTRICITY",
-  "MATERIAL",
-  "TRANSPORT",
-]);
-
 async function fetchRows(): Promise<EmissionFactorRow[]> {
   const records = await prisma.emissionFactor.findMany({
-    include: { activityType: { select: { code: true } } },
-    orderBy: [
-      { activityTypeId: "asc" },
-      { factorName: "asc" },
-      { version: "desc" },
-    ],
+    include: {
+      activityType: { select: { code: true, name: true, category: true } },
+    },
+    orderBy: [{ activityTypeId: "asc" }, { version: "desc" }],
   });
 
-  return records
-    .filter((r) => KNOWN_TYPES.has(r.activityType.code as ActivityType))
-    .map((r) => ({
-      id: r.id,
-      type: r.activityType.code as ActivityType,
-      factorName: r.factorName,
-      factor: r.factor,
-      unit: r.unit,
-      version: r.version,
-      startDate: r.startDate ? r.startDate.toISOString().slice(0, 10) : "",
-      endDate: r.endDate ? r.endDate.toISOString().slice(0, 10) : null,
-      createdAt: r.createdAt.toISOString().slice(0, 10),
-    }));
+  return records.map((r) => ({
+    id: r.id,
+    category: r.activityType.category,
+    typeCode: r.activityType.code,
+    typeName: r.activityType.name,
+    factor: r.factor,
+    unit: r.unit,
+    version: r.version,
+    isActive: r.isActive,
+    startDate: r.startDate ? r.startDate.toISOString().slice(0, 10) : "",
+    endDate: r.endDate ? r.endDate.toISOString().slice(0, 10) : null,
+    createdAt: r.createdAt.toISOString().slice(0, 10),
+  }));
 }
 
 export default async function EmissionFactorsPage() {
   const rows = await fetchRows();
   const totalVersions = rows.length;
-  const activeCount = rows.filter((r) => r.endDate === null).length;
-  const factorGroups = new Set(rows.map((r) => `${r.type}|${r.factorName}`))
-    .size;
+  const activeCount = rows.filter((r) => r.isActive).length;
+  const factorGroups = new Set(rows.map((r) => r.typeCode)).size;
 
   return (
     <div className="space-y-6 p-6 md:p-5">
       <header className="flex justify-between content-between space-y-1">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-            배출계수 이력
+            배출계수 목록
           </h1>
           <p className="text-sm text-slate-500">
-            활동 유형/계수명별로 배출계수의 버전 이력과 적용 기간을 관리합니다.
+            활동별로 배출계수의 버전 이력을 관리합니다.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -76,7 +66,7 @@ export default async function EmissionFactorsPage() {
         <StatTile
           label="계수 종류"
           value={`${factorGroups}`}
-          sub="유형·계수명 기준"
+          sub="활동 기준"
           tone="muted"
         />
       </section>

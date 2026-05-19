@@ -1,17 +1,10 @@
-import type { Prisma } from "@prisma/client";
+import { ActivityCategory, type Prisma } from "@prisma/client";
 import { prisma } from "@/shared/lib/prisma";
 import type { DashboardSummary } from "@/features/dashboard/types";
-import type { ActivityType } from "@/shared/components/card/TypeCard";
 import { FilterBox } from "@/shared/components/filter/FilterBox";
 import { TotalCard } from "@/shared/components/card/TotalCard";
 import { TypeCard } from "@/shared/components/card/TypeCard";
 import { EmptyState } from "@/shared/components/empty/EmptyState";
-
-const KNOWN_TYPES: ReadonlySet<ActivityType> = new Set([
-  "ELECTRICITY",
-  "MATERIAL",
-  "TRANSPORT",
-]);
 
 type DashboardFilters = {
   startDate?: string;
@@ -24,6 +17,10 @@ function parseDate(value: string | undefined): Date | null {
   if (!value) return null;
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function isCategory(v: string | undefined): v is ActivityCategory {
+  return !!v && v in ActivityCategory;
 }
 
 async function loadDashboardSummary(
@@ -41,38 +38,38 @@ async function loadDashboardSummary(
       ...(endDate && { lte: endDate }),
     };
   }
-  if (filters.typeCode) {
-    activityDataWhere.activityType = { code: filters.typeCode };
-  }
-
-  const where: Prisma.PcfResultWhereInput = { activityData: activityDataWhere };
-  if (filters.factorName) {
-    where.emissionFactor = { factorName: filters.factorName };
+  const typeFilter: Prisma.ActivityTypeWhereInput = {};
+  if (isCategory(filters.typeCode)) typeFilter.category = filters.typeCode;
+  if (filters.factorName) typeFilter.name = filters.factorName;
+  if (Object.keys(typeFilter).length > 0) {
+    activityDataWhere.activityType = typeFilter;
   }
 
   const rows = await prisma.pcfResult.findMany({
-    where,
+    where: { activityData: activityDataWhere },
     select: {
       carbonEmission: true,
-      activityData: { select: { activityType: { select: { code: true } } } },
+      activityData: {
+        select: { activityType: { select: { category: true } } },
+      },
     },
   });
 
-  const totalsByCode = new Map<string, number>();
+  const totalsByCategory = new Map<ActivityCategory, number>();
   let total = 0;
 
   for (const r of rows) {
     total += r.carbonEmission;
-    const code = r.activityData.activityType.code;
-    totalsByCode.set(code, (totalsByCode.get(code) ?? 0) + r.carbonEmission);
+    const cat = r.activityData.activityType.category;
+    totalsByCategory.set(cat, (totalsByCategory.get(cat) ?? 0) + r.carbonEmission);
   }
 
-  const typeTotals = Array.from(totalsByCode.entries())
-    .filter(([code]) => KNOWN_TYPES.has(code as ActivityType))
-    .map(([code, value]) => ({
-      type: code as ActivityType,
+  const typeTotals = Array.from(totalsByCategory.entries()).map(
+    ([category, value]) => ({
+      category,
       total: Number(value.toFixed(2)),
-    }));
+    }),
+  );
 
   return { total: Number(total.toFixed(2)), typeTotals };
 }
@@ -108,8 +105,8 @@ export default async function Home({
           <TotalCard total={data.total} />
           {data.typeTotals.map((t) => (
             <TypeCard
-              key={t.type}
-              type={t.type}
+              key={t.category}
+              category={t.category}
               value={t.total}
               ratio={data.total > 0 ? (t.total / data.total) * 100 : 0}
             />

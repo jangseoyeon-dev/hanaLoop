@@ -1,8 +1,9 @@
 import type { NextRequest } from "next/server";
-import { Prisma } from "@prisma/client";
+import { ActivityCategory, Prisma } from "@prisma/client";
 import { prisma } from "@/shared/lib/prisma";
 import { buildRowHashKey, rowHash8 } from "@/shared/lib/hash";
 import { findEmissionFactor } from "@/features/activity/lib/emission";
+import { resolveCategory } from "@/features/activity/lib/category";
 
 type BulkRow = {
   activity_date: string;
@@ -27,7 +28,10 @@ export async function POST(request: NextRequest) {
   }
 
   const types = await prisma.activityType.findMany();
-  const typeByCode = new Map(types.map((t) => [t.code, t]));
+  const typeByKey = new Map<string, (typeof types)[number]>();
+  for (const t of types) {
+    typeByKey.set(`${t.category}|${t.name}`, t);
+  }
 
   const upload = await prisma.uploadHistory.create({
     data: { fileName: body.fileName ?? null },
@@ -39,13 +43,27 @@ export async function POST(request: NextRequest) {
 
   for (let i = 0; i < body.rows.length; i++) {
     const raw = body.rows[i];
-    const type = typeByCode.get(raw.activity_type);
-    const amount = Number(raw.amount);
-
-    if (!type || !raw.activity_date || !raw.description || !raw.unit) {
-      errors.push({ index: i, reason: "필수 필드 누락 또는 알 수 없는 유형" });
+    if (!raw.activity_date || !raw.description || !raw.unit) {
+      errors.push({ index: i, reason: "필수 필드 누락" });
       continue;
     }
+    const category = resolveCategory(raw.activity_type);
+    if (!category) {
+      errors.push({
+        index: i,
+        reason: `알 수 없는 활동 유형: ${raw.activity_type}`,
+      });
+      continue;
+    }
+    const type = typeByKey.get(`${category as ActivityCategory}|${raw.description}`);
+    if (!type) {
+      errors.push({
+        index: i,
+        reason: `등록되지 않은 활동: ${raw.activity_type} / ${raw.description}`,
+      });
+      continue;
+    }
+    const amount = Number(raw.amount);
     if (!Number.isFinite(amount) || amount <= 0) {
       errors.push({ index: i, reason: "유효하지 않은 수량" });
       continue;
@@ -80,11 +98,7 @@ export async function POST(request: NextRequest) {
     if (isDuplicate) duplicateCount++;
 
     if (!isDuplicate) {
-      const factor = await findEmissionFactor({
-        activityTypeId: type.id,
-        factorName: raw.description,
-        activityDate,
-      });
+      const factor = await findEmissionFactor({ activityTypeId: type.id });
       if (factor) {
         await prisma.pcfResult.create({
           data: {

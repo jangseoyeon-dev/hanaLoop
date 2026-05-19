@@ -1,32 +1,24 @@
 import { prisma } from "@/shared/lib/prisma";
+import { resolveCategory } from "@/features/activity/lib/category";
 
 export async function GET() {
-  const factors = await prisma.emissionFactor.findMany({
-    select: {
-      factorName: true,
-      activityType: { select: { code: true } },
-    },
-    orderBy: [{ activityTypeId: "asc" }, { factorName: "asc" }],
+  const types = await prisma.activityType.findMany({
+    select: { id: true, code: true, name: true, category: true },
+    orderBy: [{ category: "asc" }, { name: "asc" }],
   });
-
-  const seen = new Set<string>();
-  const data: { factorName: string; typeCode: string }[] = [];
-  for (const f of factors) {
-    const key = `${f.activityType.code}|${f.factorName}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    data.push({ factorName: f.factorName, typeCode: f.activityType.code });
-  }
-
+  const data = types.map((t) => ({
+    code: t.code,
+    name: t.name,
+    category: t.category,
+  }));
   return Response.json({ data });
 }
 
 type CreateBody = {
   type?: unknown;
-  factorName?: unknown;
+  name?: unknown;
   factor?: unknown;
   unit?: unknown;
-  startDate?: unknown;
 };
 
 export async function POST(req: Request) {
@@ -37,22 +29,19 @@ export async function POST(req: Request) {
     return Response.json({ error: "잘못된 요청 본문입니다." }, { status: 400 });
   }
 
-  const typeCode = typeof body.type === "string" ? body.type.trim() : "";
-  const factorName =
-    typeof body.factorName === "string" ? body.factorName.trim() : "";
+  const categoryInput = typeof body.type === "string" ? body.type.trim() : "";
+  const name = typeof body.name === "string" ? body.name.trim() : "";
   const unit = typeof body.unit === "string" ? body.unit.trim() : "";
   const factorNum =
     typeof body.factor === "number"
       ? body.factor
       : Number(body.factor as string);
-  const startDateStr =
-    typeof body.startDate === "string" ? body.startDate : "";
 
-  if (!typeCode) {
+  if (!categoryInput) {
     return Response.json({ error: "활동 유형은 필수입니다." }, { status: 400 });
   }
-  if (!factorName) {
-    return Response.json({ error: "계수명은 필수입니다." }, { status: 400 });
+  if (!name) {
+    return Response.json({ error: "활동명은 필수입니다." }, { status: 400 });
   }
   if (!unit) {
     return Response.json({ error: "단위는 필수입니다." }, { status: 400 });
@@ -63,21 +52,23 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-  const startDate = new Date(startDateStr);
-  if (Number.isNaN(startDate.getTime())) {
+  const startDate = new Date();
+
+  const category = resolveCategory(categoryInput);
+  if (!category) {
     return Response.json(
-      { error: "올바른 시작일이 아닙니다." },
+      { error: `알 수 없는 활동 유형: ${categoryInput}` },
       { status: 400 },
     );
   }
 
   const activityType = await prisma.activityType.findUnique({
-    where: { code: typeCode },
+    where: { category_name: { category, name } },
     select: { id: true },
   });
   if (!activityType) {
     return Response.json(
-      { error: "존재하지 않는 활동 유형입니다." },
+      { error: `등록되지 않은 활동입니다: ${categoryInput} / ${name}` },
       { status: 400 },
     );
   }
@@ -85,7 +76,7 @@ export async function POST(req: Request) {
   const created = await prisma
     .$transaction(async (tx) => {
       const group = await tx.emissionFactor.findMany({
-        where: { activityTypeId: activityType.id, factorName },
+        where: { activityTypeId: activityType.id },
         orderBy: { version: "desc" },
         select: { id: true, version: true, startDate: true },
       });
@@ -106,24 +97,54 @@ export async function POST(req: Request) {
       await tx.emissionFactor.updateMany({
         where: {
           activityTypeId: activityType.id,
-          factorName,
           endDate: null,
         },
         data: { endDate: endDateForPrev },
       });
 
-      return tx.emissionFactor.create({
+      await tx.emissionFactor.updateMany({
+        where: { activityTypeId: activityType.id },
+        data: { isActive: false },
+      });
+
+      const newFactor = await tx.emissionFactor.create({
         data: {
           activityTypeId: activityType.id,
-          factorName,
           factor: factorNum,
           unit,
           version: latestVersion + 1,
+          isActive: true,
           startDate,
           endDate: null,
         },
-        include: { activityType: { select: { code: true } } },
+        include: {
+          activityType: { select: { code: true, name: true, category: true } },
+        },
       });
+
+      const affected = await tx.activityData.findMany({
+        where: {
+          activityTypeId: activityType.id,
+          isDuplicate: false,
+        },
+        select: { id: true, amount: true },
+      });
+
+      if (affected.length > 0) {
+        const ids = affected.map((a) => a.id);
+        await tx.pcfResult.deleteMany({
+          where: { activityDataId: { in: ids } },
+        });
+        await tx.pcfResult.createMany({
+          data: affected.map((a) => ({
+            activityDataId: a.id,
+            emissionFactorId: newFactor.id,
+            carbonEmission: Number(a.amount) * factorNum,
+          })),
+        });
+      }
+
+      return newFactor;
     })
     .catch((e: Error) => {
       return { __error: e.message };
@@ -139,14 +160,15 @@ export async function POST(req: Request) {
   const c = created as Awaited<
     ReturnType<typeof prisma.emissionFactor.create>
   > & {
-    activityType: { code: string };
+    activityType: { code: string; name: string; category: string };
   };
 
   return Response.json({
     data: {
       id: c.id,
-      type: c.activityType.code,
-      factorName: c.factorName,
+      typeCode: c.activityType.code,
+      name: c.activityType.name,
+      category: c.activityType.category,
       factor: c.factor,
       unit: c.unit,
       version: c.version,

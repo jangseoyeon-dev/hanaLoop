@@ -1,6 +1,5 @@
 "use client";
 import Modal from "react-modal";
-import { useState } from "react";
 import { type ActivityRow } from "@/features/data-management/types";
 import { TYPE_LABEL } from "@/shared/components/card/TypeCard";
 
@@ -95,7 +94,11 @@ export function CalculationBasisModal({
               </h3>
               <dl className="mt-2 divide-y divide-slate-100 text-sm">
                 <DetailRow label="발생일" value={selectedRow.activityDate} />
-                <DetailRow label="유형" value={TYPE_LABEL[selectedRow.type]} />
+                <DetailRow
+                  label="유형"
+                  value={TYPE_LABEL[selectedRow.category]}
+                />
+                <DetailRow label="활동" value={selectedRow.typeName} />
                 <DetailRow label="설명" value={selectedRow.description} />
                 <DetailRow
                   label="수량"

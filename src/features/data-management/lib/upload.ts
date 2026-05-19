@@ -1,9 +1,8 @@
-import type { ActivityType } from "@/shared/components/card/TypeCard";
 import * as XLSX from "xlsx";
 
 export type UploadRow = {
   activity_date: string;
-  activity_type: ActivityType;
+  activity_type: string;
   description: string;
   amount: number;
   unit: string;
@@ -22,15 +21,6 @@ const HEADER_MAP: Record<string, keyof UploadRow> = {
   수량: "amount",
 
   단위: "unit",
-};
-
-const TYPE_MAP: Record<string, ActivityType> = {
-  전기: "ELECTRICITY",
-  원소재: "MATERIAL",
-  운송: "TRANSPORT",
-  ELECTRICITY: "ELECTRICITY",
-  MATERIAL: "MATERIAL",
-  TRANSPORT: "TRANSPORT",
 };
 
 const REQUIRED_FIELDS = [
@@ -56,13 +46,6 @@ function parseUploadRow(
     if (field === "amount") {
       const n = Number(String(value).replace(/,/g, "").trim());
       if (Number.isFinite(n)) obj.amount = n;
-    } else if (field === "activity_type") {
-      const t = TYPE_MAP[String(value).trim()];
-      if (t) obj.activity_type = t;
-      else
-        console.warn(
-          `[upload] row ${rowIndex}: 알 수 없는 활동 유형 "${value}"`
-        );
     } else if (field === "activity_date") {
       obj.activity_date =
         value instanceof Date

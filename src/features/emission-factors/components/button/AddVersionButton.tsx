@@ -15,7 +15,7 @@ export function AddVersionButton() {
         onClick={() => setIsAddModalOpen(true)}
       >
         <LuPlus className="h-4 w-4" />
-        버전 등록
+        배출계수 등록
       </button>
       <AddVersionModal
         isAddModalOpen={isAddModalOpen}

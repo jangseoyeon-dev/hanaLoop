@@ -1,17 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Modal from "react-modal";
-import { TYPE_LABEL, type ActivityType } from "@/shared/components/card/TypeCard";
+import { CATEGORY_TO_KOREAN } from "@/features/activity/lib/category";
+import {
+  TYPE_LABEL,
+  type ActivityCategory,
+} from "@/shared/components/card/TypeCard";
 
 if (typeof window !== "undefined") {
   Modal.setAppElement("body");
 }
 
-const TYPE_OPTIONS: { value: ActivityType; label: string }[] = (
-  Object.keys(TYPE_LABEL) as ActivityType[]
-).map((code) => ({ value: code, label: TYPE_LABEL[code] }));
+const CATEGORY_ORDER: ActivityCategory[] = [
+  "ELECTRICITY",
+  "MATERIAL",
+  "TRANSPORT",
+];
+
+type ActivityTypeOption = {
+  code: string;
+  name: string;
+  category: ActivityCategory;
+};
 
 export function AddVersionModal({
   isAddModalOpen,
@@ -24,21 +36,58 @@ export function AddVersionModal({
   const closeModal = () => setIsAddModalOpen(false);
 
   const INITIAL_FORM = {
-    type: "" as ActivityType | "",
-    factorName: "",
+    category: "" as ActivityCategory | "",
+    name: "",
     factor: "",
     unit: "",
-    startDate: "",
   };
 
   const [form, setForm] = useState(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [typeOptions, setTypeOptions] = useState<ActivityTypeOption[]>([]);
+
+  useEffect(() => {
+    if (!isAddModalOpen) return;
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch("/api/emission-factors", {
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`emission-factors HTTP ${res.status}`);
+        const json = (await res.json().catch(() => null)) as {
+          data?: ActivityTypeOption[];
+        } | null;
+        setTypeOptions(json?.data ?? []);
+      } catch (e) {
+        if ((e as Error).name !== "AbortError") console.error(e);
+      }
+    })();
+    return () => controller.abort();
+  }, [isAddModalOpen]);
+
+  const namesByCategory = useMemo(() => {
+    const m = new Map<ActivityCategory, ActivityTypeOption[]>();
+    for (const opt of typeOptions) {
+      const arr = m.get(opt.category) ?? [];
+      arr.push(opt);
+      m.set(opt.category, arr);
+    }
+    return m;
+  }, [typeOptions]);
 
   const updateField = <K extends keyof typeof INITIAL_FORM>(
     key: K,
-    value: (typeof INITIAL_FORM)[K],
-  ) => setForm((prev) => ({ ...prev, [key]: value }));
+    value: (typeof INITIAL_FORM)[K]
+  ) =>
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "category" && prev.category !== value) {
+        next.name = "";
+      }
+      return next;
+    });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,30 +99,34 @@ export function AddVersionModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: form.type,
-          factorName: form.factorName.trim(),
+          type: form.category,
+          name: form.name,
           factor: Number(form.factor),
           unit: form.unit.trim(),
-          startDate: form.startDate,
         }),
       });
       if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as
-          | { error?: string }
-          | null;
-        throw new Error(body?.error ?? "버전 등록에 실패했습니다.");
+        const body = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(body?.error ?? "등록에 실패했습니다.");
       }
       setForm(INITIAL_FORM);
       closeModal();
       router.refresh();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "버전 등록에 실패했습니다.",
+        err instanceof Error ? err.message : "등록에 실패했습니다."
       );
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const namesForSelected =
+    form.category && form.category in TYPE_LABEL
+      ? namesByCategory.get(form.category as ActivityCategory) ?? []
+      : [];
 
   return (
     <Modal
@@ -81,7 +134,7 @@ export function AddVersionModal({
       onRequestClose={closeModal}
       shouldCloseOnOverlayClick
       shouldCloseOnEsc
-      contentLabel="배출계수 버전 등록"
+      contentLabel="배출계수 등록"
       overlayClassName="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
       className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl outline-none"
       preventScroll
@@ -90,10 +143,10 @@ export function AddVersionModal({
         <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
           <div>
             <h2 className="text-xl font-semibold tracking-tight text-slate-900">
-              배출계수 버전 등록
+              배출계수 등록
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              새 버전을 등록하면 동일 계수의 이전 버전은 자동으로 마감됩니다.
+              새 버전을 등록하면 해당 활동의 이전 버전은 자동으로 마감됩니다.
             </p>
           </div>
         </div>
@@ -101,9 +154,9 @@ export function AddVersionModal({
         <div className="space-y-4 overflow-y-auto px-6 py-5">
           <Field label="활동 유형" required>
             <select
-              value={form.type}
+              value={form.category}
               onChange={(e) =>
-                updateField("type", e.target.value as ActivityType)
+                updateField("category", e.target.value as ActivityCategory)
               }
               required
               className={inputClass}
@@ -111,23 +164,31 @@ export function AddVersionModal({
               <option value="" disabled>
                 선택
               </option>
-              {TYPE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
+              {CATEGORY_ORDER.map((cat) => (
+                <option key={cat} value={cat}>
+                  {CATEGORY_TO_KOREAN[cat]}
                 </option>
               ))}
             </select>
           </Field>
 
-          <Field label="계수명" required>
-            <input
-              type="text"
-              value={form.factorName}
-              onChange={(e) => updateField("factorName", e.target.value)}
-              placeholder="예: 한국전력, 플라스틱 1, 트럭"
+          <Field label="활동" required>
+            <select
+              value={form.name}
+              onChange={(e) => updateField("name", e.target.value)}
+              disabled={!form.category}
               required
               className={inputClass}
-            />
+            >
+              <option value="" disabled>
+                {form.category ? "선택" : "활동 유형을 먼저 선택"}
+              </option>
+              {namesForSelected.map((opt) => (
+                <option key={opt.code} value={opt.name}>
+                  {opt.name}
+                </option>
+              ))}
+            </select>
           </Field>
 
           <div className="grid grid-cols-[1fr_160px] gap-3">
@@ -156,16 +217,6 @@ export function AddVersionModal({
             </Field>
           </div>
 
-          <Field label="적용 시작일" required>
-            <input
-              type="date"
-              value={form.startDate}
-              onChange={(e) => updateField("startDate", e.target.value)}
-              required
-              className={inputClass}
-            />
-          </Field>
-
           {errorMessage && (
             <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
               {errorMessage}
@@ -187,7 +238,7 @@ export function AddVersionModal({
             disabled={isSubmitting}
             className="inline-flex items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/30 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "등록 중…" : "버전 등록"}
+            {isSubmitting ? "등록 중…" : "등록"}
           </button>
         </div>
       </form>
