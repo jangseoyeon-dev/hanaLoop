@@ -1,4 +1,4 @@
-import { activityRowsMock } from "@/features/data-management/mock";
+import type { ActivityRow } from "@/features/data-management/types";
 import { ActivityTable } from "@/features/data-management/components/table/ActivityTable";
 import { AddDataButton } from "@/features/data-management/components/button/AddDataButton";
 import { UploadButton } from "@/features/data-management/components/button/UploadButton";
@@ -6,7 +6,7 @@ import { FilterBox } from "@/shared/components/filter/FilterBox";
 import { formatNumber } from "@/shared/lib/format";
 
 export default function DataManagement() {
-  const rows = activityRowsMock;
+  const rows: ActivityRow[] = [];
   const total = rows.length;
   const flaggedCount = rows.filter((r) => r.isDuplicate).length;
   const totalCo2e = rows
