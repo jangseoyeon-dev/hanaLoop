@@ -1,12 +1,86 @@
-import { activityRowsMock } from "@/features/data-management/mock";
+import type { Prisma } from "@prisma/client";
+import type { ActivityRow } from "@/features/data-management/types";
+import type { ActivityType } from "@/shared/components/card/TypeCard";
 import { ActivityTable } from "@/features/data-management/components/table/ActivityTable";
 import { AddDataButton } from "@/features/data-management/components/button/AddDataButton";
 import { UploadButton } from "@/features/data-management/components/button/UploadButton";
 import { FilterBox } from "@/shared/components/filter/FilterBox";
 import { formatNumber } from "@/shared/lib/format";
+import { prisma } from "@/shared/lib/prisma";
 
-export default function DataManagement() {
-  const rows = activityRowsMock;
+export const dynamic = "force-dynamic";
+
+type ActivityFilters = {
+  startDate?: string;
+  endDate?: string;
+  typeCode?: string;
+  factorName?: string;
+};
+
+function parseDate(value: string | undefined): Date | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+async function fetchActivityRows(
+  filters: ActivityFilters,
+): Promise<ActivityRow[]> {
+  const startDate = parseDate(filters.startDate);
+  const endDate = parseDate(filters.endDate);
+
+  const where: Prisma.ActivityDataWhereInput = {};
+  if (startDate || endDate) {
+    where.activityDate = {
+      ...(startDate && { gte: startDate }),
+      ...(endDate && { lte: endDate }),
+    };
+  }
+  if (filters.typeCode) {
+    where.activityType = { code: filters.typeCode };
+  }
+  if (filters.factorName) {
+    where.pcfResults = {
+      some: { emissionFactor: { factorName: filters.factorName } },
+    };
+  }
+
+  const records = await prisma.activityData.findMany({
+    where,
+    orderBy: [{ activityDate: "desc" }, { id: "desc" }],
+    include: {
+      activityType: { select: { code: true } },
+      pcfResults: {
+        where: filters.factorName
+          ? { emissionFactor: { factorName: filters.factorName } }
+          : undefined,
+        select: { carbonEmission: true },
+      },
+    },
+  });
+
+  return records.map((r) => ({
+    id: r.id,
+    activityDate: r.activityDate.toISOString().slice(0, 10),
+    type: r.activityType.code as ActivityType,
+    description: r.description,
+    amount: Number(r.amount),
+    unit: r.unit,
+    co2e: Number(
+      r.pcfResults.reduce((sum, p) => sum + p.carbonEmission, 0).toFixed(2),
+    ),
+    isDuplicate: r.isDuplicate,
+    rowHash: r.rowHash ?? "",
+  }));
+}
+
+export default async function DataManagement({
+  searchParams,
+}: {
+  searchParams: Promise<ActivityFilters>;
+}) {
+  const filters = await searchParams;
+  const rows = await fetchActivityRows(filters);
   const total = rows.length;
   const flaggedCount = rows.filter((r) => r.isDuplicate).length;
   const totalCo2e = rows
@@ -46,7 +120,7 @@ export default function DataManagement() {
         />
         <StatTile
           label="필터 적용 CO₂e"
-          value={`${formatNumber(totalCo2e)} kg`}
+          value={`${formatNumber(totalCo2e)} kg CO₂e`}
           sub="플래그 제외 누계"
           tone="muted"
         />

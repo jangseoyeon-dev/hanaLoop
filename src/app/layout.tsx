@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { Header } from "@/shared/components/layout/Header";
 import { Sidebar } from "@/shared/components/layout/Sidebar";
@@ -21,6 +22,7 @@ export default function RootLayout({
           <Sidebar />
           <main className="flex-1">{children}</main>
         </div>
+        <Toaster richColors position="top-center" />
       </body>
     </html>
   );

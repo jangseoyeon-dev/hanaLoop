@@ -1,7 +1,7 @@
 "use client";
 import Modal from "react-modal";
 import { useState } from "react";
-import { type ActivityRow } from "@/features/data-management/mock";
+import { type ActivityRow } from "@/features/data-management/types";
 import { TYPE_LABEL } from "@/shared/components/card/TypeCard";
 
 import { formatNumber } from "@/shared/lib/format";
