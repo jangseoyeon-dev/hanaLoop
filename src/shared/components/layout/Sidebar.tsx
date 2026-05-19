@@ -14,7 +14,7 @@ type MenuItem = {
 const MENU: MenuItem[] = [
   { label: "대시보드", href: "/", icon: LuLayoutDashboard },
   { label: "데이터관리", href: "/data-management", icon: LuDatabase },
-  { label: "배출계수 이력", href: "/test2", icon: LuFlaskConical },
+  { label: "배출계수 이력", href: "/emission-factors", icon: LuFlaskConical },
 ];
 
 export function Sidebar() {
