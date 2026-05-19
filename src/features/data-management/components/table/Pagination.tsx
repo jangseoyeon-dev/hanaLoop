@@ -12,6 +12,57 @@ type Props = {
 };
 
 const DEFAULT_OPTIONS = [5, 10, 20, 50];
+const SIBLING_COUNT = 1;
+const BOUNDARY_COUNT = 1;
+
+type PageItem = number | "ellipsis-start" | "ellipsis-end";
+
+function buildPageItems(
+  totalPages: number,
+  current: number,
+  siblings: number,
+  boundaries: number,
+): PageItem[] {
+  const totalNumbers = boundaries * 2 + siblings * 2 + 3;
+  if (totalPages <= totalNumbers) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  const startPages = Array.from({ length: boundaries }, (_, i) => i + 1);
+  const endPages = Array.from(
+    { length: boundaries },
+    (_, i) => totalPages - boundaries + i + 1,
+  );
+
+  const siblingStart = Math.max(
+    Math.min(current - siblings, totalPages - boundaries - siblings * 2 - 1),
+    boundaries + 2,
+  );
+  const siblingEnd = Math.min(
+    Math.max(current + siblings, boundaries + siblings * 2 + 2),
+    totalPages - boundaries - 1,
+  );
+
+  const items: PageItem[] = [...startPages];
+  if (siblingStart > boundaries + 2) {
+    items.push("ellipsis-start");
+  } else if (boundaries + 1 < totalPages - boundaries) {
+    items.push(boundaries + 1);
+  }
+
+  for (let p = siblingStart; p <= siblingEnd; p++) {
+    items.push(p);
+  }
+
+  if (siblingEnd < totalPages - boundaries - 1) {
+    items.push("ellipsis-end");
+  } else if (totalPages - boundaries > boundaries) {
+    items.push(totalPages - boundaries);
+  }
+
+  items.push(...endPages);
+  return items;
+}
 
 export function Pagination({
   page,
@@ -30,7 +81,12 @@ export function Pagination({
   const canPrev = page > 1;
   const canNext = page < totalPages;
 
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  const pageItems = buildPageItems(
+    totalPages,
+    page,
+    SIBLING_COUNT,
+    BOUNDARY_COUNT,
+  );
 
   return (
     <div className="flex items-center justify-between gap-4 border-t border-slate-100 py-3">
@@ -77,22 +133,35 @@ export function Pagination({
         >
           ‹
         </button>
-        {pages.map((p) => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => onPageChange(p)}
-            aria-current={p === page ? "page" : undefined}
-            className={
-              "inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-medium transition-colors " +
-              (p === page
-                ? "bg-slate-900 text-white"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")
-            }
-          >
-            {p}
-          </button>
-        ))}
+        {pageItems.map((item) => {
+          if (item === "ellipsis-start" || item === "ellipsis-end") {
+            return (
+              <span
+                key={item}
+                aria-hidden="true"
+                className="inline-flex h-8 min-w-8 items-center justify-center px-1 text-xs text-slate-400"
+              >
+                …
+              </span>
+            );
+          }
+          return (
+            <button
+              key={item}
+              type="button"
+              onClick={() => onPageChange(item)}
+              aria-current={item === page ? "page" : undefined}
+              className={
+                "inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-medium transition-colors " +
+                (item === page
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")
+              }
+            >
+              {item}
+            </button>
+          );
+        })}
         <button
           type="button"
           onClick={() => onPageChange(page + 1)}

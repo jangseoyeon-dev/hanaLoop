@@ -83,7 +83,7 @@ export function CalculationBasisModal({
                 </span>
                 <span className="text-slate-400">=</span>
                 <span className="text-base font-semibold tabular-nums text-slate-900">
-                  {formatNumber(selectedRow.co2e)} kg
+                  {formatNumber(selectedRow.co2e)} kgCO₂e
                 </span>
               </div>
             </div>
