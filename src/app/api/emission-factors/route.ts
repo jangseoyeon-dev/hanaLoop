@@ -1,26 +1,22 @@
 import { prisma } from "@/shared/lib/prisma";
 
 export async function GET() {
-  const rows = await prisma.emissionFactor.findMany({
-    include: { activityType: { select: { code: true } } },
-    orderBy: [
-      { activityTypeId: "asc" },
-      { factorName: "asc" },
-      { version: "desc" },
-    ],
+  const factors = await prisma.emissionFactor.findMany({
+    select: {
+      factorName: true,
+      activityType: { select: { code: true } },
+    },
+    orderBy: [{ activityTypeId: "asc" }, { factorName: "asc" }],
   });
 
-  const data = rows.map((r) => ({
-    id: r.id,
-    type: r.activityType.code,
-    factorName: r.factorName,
-    factor: r.factor,
-    unit: r.unit,
-    version: r.version,
-    startDate: r.startDate ? r.startDate.toISOString().slice(0, 10) : null,
-    endDate: r.endDate ? r.endDate.toISOString().slice(0, 10) : null,
-    createdAt: r.createdAt.toISOString().slice(0, 10),
-  }));
+  const seen = new Set<string>();
+  const data: { factorName: string; typeCode: string }[] = [];
+  for (const f of factors) {
+    const key = `${f.activityType.code}|${f.factorName}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    data.push({ factorName: f.factorName, typeCode: f.activityType.code });
+  }
 
   return Response.json({ data });
 }
@@ -86,50 +82,52 @@ export async function POST(req: Request) {
     );
   }
 
-  const created = await prisma.$transaction(async (tx) => {
-    const group = await tx.emissionFactor.findMany({
-      where: { activityTypeId: activityType.id, factorName },
-      orderBy: { version: "desc" },
-      select: { id: true, version: true, startDate: true },
-    });
+  const created = await prisma
+    .$transaction(async (tx) => {
+      const group = await tx.emissionFactor.findMany({
+        where: { activityTypeId: activityType.id, factorName },
+        orderBy: { version: "desc" },
+        select: { id: true, version: true, startDate: true },
+      });
 
-    const latestVersion = group[0]?.version ?? 0;
+      const latestVersion = group[0]?.version ?? 0;
 
-    for (const prev of group) {
-      if (prev.startDate && prev.startDate >= startDate) {
-        throw new Error(
-          "기존 버전의 시작일보다 이후 날짜를 입력해 주세요.",
-        );
+      for (const prev of group) {
+        if (prev.startDate && prev.startDate >= startDate) {
+          throw new Error(
+            "기존 버전의 시작일보다 이후 날짜를 입력해 주세요.",
+          );
+        }
       }
-    }
 
-    const endDateForPrev = new Date(startDate);
-    endDateForPrev.setUTCDate(endDateForPrev.getUTCDate() - 1);
+      const endDateForPrev = new Date(startDate);
+      endDateForPrev.setUTCDate(endDateForPrev.getUTCDate() - 1);
 
-    await tx.emissionFactor.updateMany({
-      where: {
-        activityTypeId: activityType.id,
-        factorName,
-        endDate: null,
-      },
-      data: { endDate: endDateForPrev },
+      await tx.emissionFactor.updateMany({
+        where: {
+          activityTypeId: activityType.id,
+          factorName,
+          endDate: null,
+        },
+        data: { endDate: endDateForPrev },
+      });
+
+      return tx.emissionFactor.create({
+        data: {
+          activityTypeId: activityType.id,
+          factorName,
+          factor: factorNum,
+          unit,
+          version: latestVersion + 1,
+          startDate,
+          endDate: null,
+        },
+        include: { activityType: { select: { code: true } } },
+      });
+    })
+    .catch((e: Error) => {
+      return { __error: e.message };
     });
-
-    return tx.emissionFactor.create({
-      data: {
-        activityTypeId: activityType.id,
-        factorName,
-        factor: factorNum,
-        unit,
-        version: latestVersion + 1,
-        startDate,
-        endDate: null,
-      },
-      include: { activityType: { select: { code: true } } },
-    });
-  }).catch((e: Error) => {
-    return { __error: e.message };
-  });
 
   if ("__error" in (created as object)) {
     return Response.json(
@@ -138,7 +136,9 @@ export async function POST(req: Request) {
     );
   }
 
-  const c = created as Awaited<ReturnType<typeof prisma.emissionFactor.create>> & {
+  const c = created as Awaited<
+    ReturnType<typeof prisma.emissionFactor.create>
+  > & {
     activityType: { code: string };
   };
 

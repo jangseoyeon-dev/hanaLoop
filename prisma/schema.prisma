@@ -11,6 +11,7 @@ model ActivityType {
   id              Int              @id @default(autoincrement())
   code            String           @unique
   name            String
+  unit            String           @default("") @db.VarChar(20)
 
   activityData    ActivityData[]
   emissionFactors EmissionFactor[]

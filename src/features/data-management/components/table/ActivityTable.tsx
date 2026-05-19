@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { type ActivityRow } from "@/features/data-management/mock";
+import { type ActivityRow } from "@/features/data-management/types";
 import { Table } from "./Table";
 import { CalculationBasisModal } from "../modal/CalculationBasisModal";
 
