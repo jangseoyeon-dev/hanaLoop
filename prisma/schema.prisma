@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ActivityType {
+  id              Int              @id @default(autoincrement())
+  code            String           @unique
+  name            String
+
+  activityData    ActivityData[]
+  emissionFactors EmissionFactor[]
+
+  @@map("activity_types")
+}
+
+model UploadHistory {
+  id           Int            @id @default(autoincrement())
+  fileName     String?        @map("file_name") @db.VarChar(255)
+  uploadedAt   DateTime       @default(now()) @map("uploaded_at") @db.Timestamp(6)
+
+  activityData ActivityData[]
+
+  @@map("upload_histories")
+}
+
+model ActivityData {
+  id              Int            @id @default(autoincrement())
+
+  uploadHistoryId Int?           @map("upload_history_id")
+  uploadHistory   UploadHistory? @relation(fields: [uploadHistoryId], references: [id])
+
+  activityDate    DateTime       @map("activity_date") @db.Date
+
+  activityTypeId  Int            @map("activity_type_id")
+  activityType    ActivityType   @relation(fields: [activityTypeId], references: [id])
+
+  description     String         @db.VarChar(100)
+  amount          Decimal        @db.Decimal(12, 2)
+  unit            String         @db.VarChar(50)
+
+  rowHash         String?        @map("row_hash") @db.VarChar(255)
+  isDuplicate     Boolean        @default(false) @map("is_duplicate")
+
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamp(6)
+
+  pcfResults      PcfResult[]
+
+  @@map("activity_data")
+}
+
+model EmissionFactor {
+  id             Int          @id @default(autoincrement())
+
+  activityTypeId Int          @map("activity_type_id")
+  activityType   ActivityType @relation(fields: [activityTypeId], references: [id])
+
+  factorName     String       @map("factor_name")
+  factor         Float
+  unit           String
+
+  version        Int          @default(1)
+
+  startDate      DateTime?    @map("start_date")
+  endDate        DateTime?    @map("end_date")
+
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamp(6)
+
+  pcfResults     PcfResult[]
+
+  @@map("emission_factors")
+}
+
+model PcfResult {
+  id                Int            @id @default(autoincrement())
+
+  activityDataId    Int            @map("activity_data_id")
+  activityData      ActivityData   @relation(fields: [activityDataId], references: [id])
+
+  emissionFactorId  Int            @map("emission_factor_id")
+  emissionFactor    EmissionFactor @relation(fields: [emissionFactorId], references: [id])
+
+  carbonEmission    Float          @map("carbon_emission")
+
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamp(6)
+
+  @@map("pcf_results")
+}

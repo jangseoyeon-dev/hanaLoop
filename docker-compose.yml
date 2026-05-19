@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pcf-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pcf
+      POSTGRES_PASSWORD: pcf_password
+      POSTGRES_DB: pcf
+      TZ: Asia/Seoul
+      PGTZ: Asia/Seoul
+    ports:
+      - "5432:5432"
+    volumes:
+      - pcf-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pcf -d pcf"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pcf-postgres-data:
