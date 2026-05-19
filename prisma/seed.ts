@@ -3,9 +3,9 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const ACTIVITY_TYPES = [
-  { code: "ELECTRICITY", name: "전기" },
-  { code: "MATERIAL", name: "원소재" },
-  { code: "TRANSPORT", name: "운송" },
+  { code: "ELECTRICITY", name: "전기", unit: "kWh" },
+  { code: "MATERIAL", name: "원소재", unit: "kg" },
+  { code: "TRANSPORT", name: "운송", unit: "ton-km" },
 ] as const;
 
 const EMISSION_FACTORS = [
@@ -39,7 +39,7 @@ async function main() {
   for (const t of ACTIVITY_TYPES) {
     await prisma.activityType.upsert({
       where: { code: t.code },
-      update: { name: t.name },
+      update: { name: t.name, unit: t.unit },
       create: t,
     });
   }
