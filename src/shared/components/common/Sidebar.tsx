@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LuLayoutDashboard, LuFlaskConical } from "react-icons/lu";
-import { useSidebarStore } from "../../stores/sidebarStore";
+import { useSidebarStore } from "@/shared/stores/sidebarStore";
 
 type MenuItem = {
   label: string;
