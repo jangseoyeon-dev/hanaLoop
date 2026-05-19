@@ -10,6 +10,7 @@ import { formatNumber } from "@/shared/lib/format";
 import { useState } from "react";
 import { LuPlus, LuUpload } from "react-icons/lu";
 import { CalculationBasisModal } from "@/shared/components/modal/CalculationBasisModal";
+import { AddDataModal } from "@/shared/components/modal/AddDataModal";
 
 export default function DataManagement() {
   const rows = activityRowsMock;
@@ -25,6 +26,9 @@ export default function DataManagement() {
     setSelectedRow(r);
     setIsModalOpen(true);
   };
+
+  // 데이터 추가 모달 여부
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   return (
     <div className="space-y-6 p-6 md:p-5">
@@ -48,6 +52,7 @@ export default function DataManagement() {
           <button
             type="button"
             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/30"
+            onClick={() => setIsAddModalOpen(true)}
           >
             <LuPlus className="h-4 w-4" />
             데이터 추가
@@ -80,11 +85,15 @@ export default function DataManagement() {
           <Table rows={rows} onRowClick={openRow} />
         </div>
       </div>
-
+      {/* 각 로우 클릭시 계산 근거 모달 */}
       <CalculationBasisModal
         isModalOpen={isModalOpen}
         setIsModalOpen={setIsModalOpen}
         selectedRow={selectedRow}
+      />
+      <AddDataModal
+        isAddModalOpen={isAddModalOpen}
+        setIsAddModalOpen={setIsAddModalOpen}
       />
     </div>
   );
