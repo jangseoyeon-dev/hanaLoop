@@ -4,13 +4,13 @@ import {
   type ActivityRow,
   activityRowsMock,
 } from "@/features/data-management/mock";
-import { FilterBox } from "@/shared/components/Filter/FilterBox";
-import { Table } from "@/shared/components/Table/Table";
+import { FilterBox } from "@/shared/components/filter/FilterBox";
+import { Table } from "@/shared/components/table/Table";
 import { formatNumber } from "@/shared/lib/format";
 import { useState } from "react";
 import { LuPlus, LuUpload } from "react-icons/lu";
-import { CalculationBasisModal } from "@/shared/components/modal/CalculationBasisModal";
-import { AddDataModal } from "@/shared/components/modal/AddDataModal";
+import { CalculationBasisModal } from "@/shared/components/modals/CalculationBasisModal";
+import { AddDataModal } from "@/shared/components/modals/AddDataModal";
 
 import * as XLSX from "xlsx";
 

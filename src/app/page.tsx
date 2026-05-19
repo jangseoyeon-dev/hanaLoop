@@ -1,5 +1,5 @@
 import { dashboardMock } from "@/features/dashboard/mock";
-import { FilterBox } from "@/shared/components/Filter/FilterBox";
+import { FilterBox } from "@/shared/components/filter/FilterBox";
 import { TotalCard } from "@/shared/components/card/TotalCard";
 import { TypeCard } from "@/shared/components/card/TypeCard";
 
