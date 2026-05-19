@@ -6,7 +6,7 @@ import { TypeCard } from "@/shared/components/card/TypeCard";
 export default function Home() {
   const data = dashboardMock;
   return (
-    <div className="space-y-6 p-6 md:p-8">
+    <div className="space-y-6 p-6 md:p-5">
       <header className="space-y-1.5">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
           제품별 탄소 발자국 현황
