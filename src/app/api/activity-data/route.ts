@@ -2,8 +2,8 @@ import type { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/shared/lib/prisma";
 import { buildRowHashKey, rowHash8 } from "@/shared/lib/hash";
-import { findEmissionFactor } from "@/features/activity/lib/emission";
-import { resolveCategory } from "@/features/activity/lib/category";
+import { findEmissionFactor } from "@/shared/lib/emission";
+import { resolveCategory } from "@/shared/lib/category";
 
 type ListQuery = {
   startDate: Date | null;
@@ -52,7 +52,12 @@ export async function GET(request: NextRequest) {
       take: q.pageSize,
       include: {
         activityType: true,
-        pcfResults: { select: { carbonEmission: true } },
+        pcfResults: {
+          select: {
+            carbonEmission: true,
+            emissionFactor: { select: { factor: true, unit: true } },
+          },
+        },
       },
     }),
   ]);
@@ -69,6 +74,8 @@ export async function GET(request: NextRequest) {
     co2e: Number(
       r.pcfResults.reduce((sum, p) => sum + p.carbonEmission, 0).toFixed(2),
     ),
+    factor: r.pcfResults[0]?.emissionFactor?.factor ?? null,
+    factorUnit: r.pcfResults[0]?.emissionFactor?.unit ?? null,
     isDuplicate: r.isDuplicate,
     rowHash: r.rowHash,
   }));

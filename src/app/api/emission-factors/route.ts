@@ -1,15 +1,16 @@
 import { prisma } from "@/shared/lib/prisma";
-import { resolveCategory } from "@/features/activity/lib/category";
+import { resolveCategory } from "@/shared/lib/category";
 
 export async function GET() {
   const types = await prisma.activityType.findMany({
-    select: { id: true, code: true, name: true, category: true },
+    select: { id: true, code: true, name: true, category: true, unit: true },
     orderBy: [{ category: "asc" }, { name: "asc" }],
   });
   const data = types.map((t) => ({
     code: t.code,
     name: t.name,
     category: t.category,
+    unit: t.unit,
   }));
   return Response.json({ data });
 }

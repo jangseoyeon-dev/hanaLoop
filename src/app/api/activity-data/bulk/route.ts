@@ -2,8 +2,8 @@ import type { NextRequest } from "next/server";
 import { ActivityCategory, Prisma } from "@prisma/client";
 import { prisma } from "@/shared/lib/prisma";
 import { buildRowHashKey, rowHash8 } from "@/shared/lib/hash";
-import { findEmissionFactor } from "@/features/activity/lib/emission";
-import { resolveCategory } from "@/features/activity/lib/category";
+import { findEmissionFactor } from "@/shared/lib/emission";
+import { resolveCategory } from "@/shared/lib/category";
 
 type BulkRow = {
   activity_date: string;

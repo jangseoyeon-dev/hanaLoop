@@ -1,20 +1,15 @@
 import type { Prisma } from "@prisma/client";
-import type { ActivityRow } from "@/features/data-management/types";
-import { ActivityTable } from "@/features/data-management/components/table/ActivityTable";
-import { AddDataButton } from "@/features/data-management/components/button/AddDataButton";
-import { UploadButton } from "@/features/data-management/components/button/UploadButton";
+import type { ActivityRow } from "./_lib/types";
+import { ActivityTable } from "./_components/table/ActivityTable";
+import { AddDataButton } from "./_components/button/AddDataButton";
+import { UploadButton } from "./_components/button/UploadButton";
 import { FilterBox } from "@/shared/components/filter/FilterBox";
+import type { FilterValues } from "@/shared/components/filter/types";
+import { StatTile } from "@/shared/components/card/StatTile";
 import { formatNumber } from "@/shared/lib/format";
 import { prisma } from "@/shared/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-type ActivityFilters = {
-  startDate?: string;
-  endDate?: string;
-  typeCode?: string;
-  factorName?: string;
-};
 
 function parseDate(value: string | undefined): Date | null {
   if (!value) return null;
@@ -22,9 +17,7 @@ function parseDate(value: string | undefined): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-async function fetchActivityRows(
-  filters: ActivityFilters,
-): Promise<ActivityRow[]> {
+async function fetchRows(filters: FilterValues): Promise<ActivityRow[]> {
   const startDate = parseDate(filters.startDate);
   const endDate = parseDate(filters.endDate);
 
@@ -36,7 +29,9 @@ async function fetchActivityRows(
     };
   }
   if (filters.typeCode) {
-    where.activityType = { category: filters.typeCode as Prisma.EnumActivityCategoryFilter };
+    where.activityType = {
+      category: filters.typeCode as Prisma.EnumActivityCategoryFilter,
+    };
   }
   if (filters.factorName) {
     where.activityType = {
@@ -50,7 +45,12 @@ async function fetchActivityRows(
     orderBy: [{ activityDate: "desc" }, { id: "desc" }],
     include: {
       activityType: { select: { code: true, name: true, category: true } },
-      pcfResults: { select: { carbonEmission: true } },
+      pcfResults: {
+        select: {
+          carbonEmission: true,
+          emissionFactor: { select: { factor: true, unit: true } },
+        },
+      },
     },
   });
 
@@ -63,8 +63,10 @@ async function fetchActivityRows(
     amount: Number(r.amount),
     unit: r.unit,
     co2e: Number(
-      r.pcfResults.reduce((sum, p) => sum + p.carbonEmission, 0).toFixed(2),
+      r.pcfResults.reduce((sum, p) => sum + p.carbonEmission, 0).toFixed(2)
     ),
+    factor: r.pcfResults[0]?.emissionFactor?.factor ?? null,
+    factorUnit: r.pcfResults[0]?.emissionFactor?.unit ?? null,
     isDuplicate: r.isDuplicate,
     rowHash: r.rowHash ?? "",
   }));
@@ -73,10 +75,10 @@ async function fetchActivityRows(
 export default async function DataManagement({
   searchParams,
 }: {
-  searchParams: Promise<ActivityFilters>;
+  searchParams: Promise<FilterValues>;
 }) {
   const filters = await searchParams;
-  const rows = await fetchActivityRows(filters);
+  const rows = await fetchRows(filters);
   const total = rows.length;
   const flaggedCount = rows.filter((r) => r.isDuplicate).length;
   const totalCo2e = rows
@@ -123,32 +125,6 @@ export default async function DataManagement({
 
       <FilterBox />
       <ActivityTable rows={rows} />
-    </div>
-  );
-}
-
-function StatTile({
-  label,
-  value,
-  sub,
-  tone,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-  tone: "brand" | "warning" | "muted";
-}) {
-  const accent =
-    tone === "brand"
-      ? "text-brand-700"
-      : tone === "warning"
-      ? "text-amber-700"
-      : "text-slate-700";
-  return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-3">
-      <div className="text-xs font-medium text-slate-500">{label}</div>
-      <div className={`mt-2 text-2xl font-semibold ${accent}`}>{value}</div>
-      <div className="mt-1 text-xs text-slate-400">{sub}</div>
     </div>
   );
 }
