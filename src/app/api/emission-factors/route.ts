@@ -1,5 +1,5 @@
 import { prisma } from "@/shared/lib/prisma";
-import { resolveCategory } from "@/features/activity/lib/category";
+import { resolveCategory } from "@/shared/lib/category";
 
 export async function GET() {
   const types = await prisma.activityType.findMany({

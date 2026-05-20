@@ -1,7 +1,8 @@
-import type { EmissionFactorRow } from "@/features/emission-factors/types";
+import type { EmissionFactorRow } from "./_lib/types";
 import { prisma } from "@/shared/lib/prisma";
-import { EmissionFactorTable } from "@/features/emission-factors/components/table/EmissionFactorTable";
-import { AddVersionButton } from "@/features/emission-factors/components/button/AddVersionButton";
+import { EmissionFactorTable } from "./_components/table/EmissionFactorTable";
+import { AddVersionButton } from "./_components/button/AddVersionButton";
+import { StatTile } from "@/shared/components/card/StatTile";
 
 export const dynamic = "force-dynamic";
 
@@ -72,32 +73,6 @@ export default async function EmissionFactorsPage() {
       </section>
 
       <EmissionFactorTable rows={rows} />
-    </div>
-  );
-}
-
-function StatTile({
-  label,
-  value,
-  sub,
-  tone,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-  tone: "brand" | "warning" | "muted";
-}) {
-  const accent =
-    tone === "brand"
-      ? "text-brand-700"
-      : tone === "warning"
-      ? "text-amber-700"
-      : "text-slate-700";
-  return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-3">
-      <div className="text-xs font-medium text-slate-500">{label}</div>
-      <div className={`mt-2 text-2xl font-semibold ${accent}`}>{value}</div>
-      <div className="mt-1 text-xs text-slate-400">{sub}</div>
     </div>
   );
 }

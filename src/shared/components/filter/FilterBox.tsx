@@ -5,7 +5,7 @@ import { FilterField } from "./FilterField";
 import {
   TYPE_LABEL,
   type ActivityCategory,
-} from "@/shared/components/card/TypeCard";
+} from "@/app/(dashboard)/_components/TypeCard";
 
 const CATEGORY_ORDER: ActivityCategory[] = [
   "ELECTRICITY",
@@ -71,7 +71,7 @@ export function FilterBox() {
     const stillValid = types.some(
       (t) =>
         t.name === selectedName &&
-        (!selectedCategory || t.category === selectedCategory),
+        (!selectedCategory || t.category === selectedCategory)
     );
     if (!stillValid) updateParam({ factorName: "" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -82,7 +82,7 @@ export function FilterBox() {
     : types;
 
   const hasActiveFilter = Boolean(
-    startDate || endDate || selectedCategory || selectedName,
+    startDate || endDate || selectedCategory || selectedName
   );
 
   const resetFilters = () => {
