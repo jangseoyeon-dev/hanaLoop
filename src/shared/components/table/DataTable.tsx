@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Th } from "./Th";
 import { Pagination } from "./Pagination";
 
@@ -59,9 +59,13 @@ export function DataTable<T>({
   const [clientPage, setClientPage] = useState(1);
   const [clientPageSize, setClientPageSize] = useState(DEFAULT_PAGE_SIZE);
 
-  useEffect(() => {
+  // rows·표시 개수가 바뀌면 첫 페이지로 되돌린다. effect 대신 렌더 중 이전 값과
+  // 비교해 조정하는 React 권장 패턴(https://react.dev/learn/you-might-not-need-an-effect).
+  const [prevReset, setPrevReset] = useState({ rows, size: clientPageSize });
+  if (prevReset.rows !== rows || prevReset.size !== clientPageSize) {
+    setPrevReset({ rows, size: clientPageSize });
     setClientPage(1);
-  }, [rows, clientPageSize]);
+  }
 
   const isServer = Boolean(serverPagination);
 

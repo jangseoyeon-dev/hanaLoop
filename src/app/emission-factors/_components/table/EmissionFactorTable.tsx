@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { EmissionFactorRow } from "../../_lib/types";
 import { TYPE_LABEL } from "@/app/(dashboard)/_components/TypeCard";
-import { formatNumber } from "@/shared/lib/format";
 import { DataTable, type Column } from "@/shared/components/table/DataTable";
 import { ActivateVersionModal } from "../modal/ActivateVersionModal";
 import { EditFactorModal, type EditTarget } from "../modal/EditFactorModal";
