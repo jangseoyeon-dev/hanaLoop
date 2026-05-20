@@ -1,39 +1,13 @@
-import type { EmissionFactorRow } from "./_lib/types";
-import { prisma } from "@/shared/lib/prisma";
+import { loadEmissionFactorData } from "./_lib/queries";
 import { EmissionFactorTable } from "./_components/table/EmissionFactorTable";
 import { AddVersionButton } from "./_components/button/AddVersionButton";
 import { StatTile } from "@/shared/components/card/StatTile";
 
 export const dynamic = "force-dynamic";
 
-async function fetchRows(): Promise<EmissionFactorRow[]> {
-  const records = await prisma.emissionFactor.findMany({
-    include: {
-      activityType: { select: { code: true, name: true, category: true } },
-    },
-    orderBy: [{ activityTypeId: "asc" }, { version: "desc" }],
-  });
-
-  return records.map((r) => ({
-    id: r.id,
-    category: r.activityType.category,
-    typeCode: r.activityType.code,
-    typeName: r.activityType.name,
-    factor: r.factor,
-    unit: r.unit,
-    version: r.version,
-    isActive: r.isActive,
-    startDate: r.startDate ? r.startDate.toISOString().slice(0, 10) : "",
-    endDate: r.endDate ? r.endDate.toISOString().slice(0, 10) : null,
-    createdAt: r.createdAt.toISOString().slice(0, 10),
-  }));
-}
-
 export default async function EmissionFactorsPage() {
-  const rows = await fetchRows();
-  const totalVersions = rows.length;
-  const activeCount = rows.filter((r) => r.isActive).length;
-  const factorGroups = new Set(rows.map((r) => r.typeCode)).size;
+  const { rows, stats } = await loadEmissionFactorData();
+  const { totalVersions, activeCount, factorGroups } = stats;
 
   return (
     <div className="space-y-6 p-6 md:p-5">
