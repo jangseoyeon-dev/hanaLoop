@@ -30,17 +30,19 @@
 
 ## 로컬 실행 방법
 
-> 사전 요구사항: **Node.js 20+**, **pnpm**, **Docker**
+> 사전 요구사항: **Node.js 20+**, **pnpm**, **Docker** (Docker Desktop 등 데몬이 실행 중이어야 합니다)
 
 ```bash
 # 1. 의존성 설치
 pnpm install
 
 # 2. 환경변수 파일 생성 (기본값이 docker-compose 설정과 일치)
+#    → DATABASE_URL 이 localhost(로컬 DB)를 가리키는지 확인하세요
 cp .env.example .env
 
 # 3. DB 컨테이너 기동 → 스키마 마이그레이션 → 시드 데이터 주입
-pnpm db:up && pnpm prisma:migrate && pnpm prisma:generate 
+#    (먼저 Docker Desktop 등 Docker 데몬을 실행해 두세요)
+pnpm db:up && pnpm prisma:migrate && pnpm prisma:seed
 
 # 4. 프로덕션 빌드
 pnpm build
@@ -50,6 +52,14 @@ pnpm start
 ```
 
 > 개발 모드로 띄우려면 4·5단계 대신 `pnpm dev` 하나로 실행할 수 있습니다.
+
+> `pnpm db:up` / `pnpm db:down` 은 아래 Docker Compose 명령을 감싼 것입니다.
+> pnpm 없이 직접 실행하려면 다음을 사용하세요.
+>
+> ```bash
+> docker compose -p pcf up -d    # DB 컨테이너 기동 (= pnpm db:up)
+> docker compose -p pcf down     # DB 컨테이너 종료 (= pnpm db:down)
+> ```
 
 ### 자주 쓰는 스크립트
 
