@@ -40,7 +40,7 @@ pnpm install
 cp .env.example .env
 
 # 3. DB 컨테이너 기동 → 스키마 마이그레이션 → 시드 데이터 주입
-pnpm db:up && pnpm prisma:migrate && pnpm prisma:seed
+pnpm db:up && pnpm prisma:migrate && pnpm prisma:generate 
 
 # 4. 프로덕션 빌드
 pnpm build
