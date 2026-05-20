@@ -11,10 +11,7 @@ import {
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
 import type { ActivityTotal } from "@/features/dashboard/types";
-import {
-  TYPE_COLOR,
-  TYPE_LABEL,
-} from "@/shared/components/card/TypeCard";
+import { TYPE_COLOR, TYPE_LABEL } from "@/shared/components/card/TypeCard";
 import { ChartCard } from "./ChartCard";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
@@ -39,7 +36,7 @@ export function TopActivitiesChart({
         },
       ],
     }),
-    [topActivities],
+    [topActivities]
   );
 
   const options: ChartOptions<"bar"> = {
@@ -75,7 +72,7 @@ export function TopActivitiesChart({
 
   return (
     <ChartCard
-      title="활동 유형 상위 5"
+      title="활동 유형 상위 3"
       description="배출 기여도가 가장 큰 활동"
     >
       <Bar data={data} options={options} />

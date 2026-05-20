@@ -11,7 +11,7 @@ import { Pagination } from "@/features/data-management/components/table/Paginati
 import { Th } from "@/features/data-management/components/table/Th";
 
 if (typeof window !== "undefined") {
-  Modal.setAppElement("body");
+  Modal.setAppElement("#app-root");
 }
 
 const DEFAULT_PAGE_SIZE = 8;

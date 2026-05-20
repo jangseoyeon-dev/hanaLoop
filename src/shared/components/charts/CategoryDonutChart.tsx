@@ -9,17 +9,18 @@ import {
 } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
 import type { TypeTotal } from "@/features/dashboard/types";
-import {
-  TYPE_COLOR,
-  TYPE_LABEL,
-} from "@/shared/components/card/TypeCard";
+import { TYPE_COLOR, TYPE_LABEL } from "@/shared/components/card/TypeCard";
 import { ChartCard } from "./ChartCard";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const numberFmt = new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 1 });
 
-export function CategoryDonutChart({ typeTotals }: { typeTotals: TypeTotal[] }) {
+export function CategoryDonutChart({
+  typeTotals,
+}: {
+  typeTotals: TypeTotal[];
+}) {
   const data = useMemo(
     () => ({
       labels: typeTotals.map((t) => TYPE_LABEL[t.category]),
@@ -33,7 +34,7 @@ export function CategoryDonutChart({ typeTotals }: { typeTotals: TypeTotal[] }) 
         },
       ],
     }),
-    [typeTotals],
+    [typeTotals]
   );
 
   const total = typeTotals.reduce((s, t) => s + t.total, 0);
@@ -45,14 +46,19 @@ export function CategoryDonutChart({ typeTotals }: { typeTotals: TypeTotal[] }) 
     plugins: {
       legend: {
         position: "bottom",
-        labels: { boxWidth: 10, boxHeight: 10, padding: 12, font: { size: 12 } },
+        labels: {
+          boxWidth: 10,
+          boxHeight: 10,
+          padding: 12,
+          font: { size: 12 },
+        },
       },
       tooltip: {
         callbacks: {
           label: (ctx) => {
             const v = ctx.parsed as number;
             const ratio = total > 0 ? (v / total) * 100 : 0;
-            return ` ${numberFmt.format(v)} kg (${ratio.toFixed(1)}%)`;
+            return ` ${numberFmt.format(v)} kg CO₂e (${ratio.toFixed(1)}%)`;
           },
         },
       },

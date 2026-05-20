@@ -17,10 +17,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-full flex flex-col">
-        <Header />
-        <div className="flex flex-1">
-          <Sidebar />
-          <main className="flex-1">{children}</main>
+        <div id="app-root" className="contents">
+          <Header />
+          <div className="flex flex-1">
+            <Sidebar />
+            <main className="flex-1">{children}</main>
+          </div>
         </div>
         <Toaster richColors position="top-center" />
       </body>

@@ -7,33 +7,33 @@ const ACTIVITY_TYPES = [
     code: "KEPCO",
     name: "한국전력",
     category: ActivityCategory.ELECTRICITY,
-    unit: "kWh",
+    unit: "kgCO₂e / kWh",
   },
   {
     code: "PLASTIC_1",
     name: "플라스틱 1",
     category: ActivityCategory.MATERIAL,
-    unit: "kg",
+    unit: "kgCO₂e / kg",
   },
   {
     code: "PLASTIC_2",
     name: "플라스틱 2",
     category: ActivityCategory.MATERIAL,
-    unit: "kg",
+    unit: "kgCO₂e / kg",
   },
   {
     code: "TRUCK",
     name: "트럭",
     category: ActivityCategory.TRANSPORT,
-    unit: "ton-km",
+    unit: "kgCO₂e / ton-km",
   },
 ] as const;
 
 const EMISSION_FACTORS = [
-  { typeCode: "KEPCO", factor: 0.456, unit: "kgCO2e/kWh" },
-  { typeCode: "PLASTIC_1", factor: 2.3, unit: "kgCO2e/kg" },
-  { typeCode: "PLASTIC_2", factor: 3.2, unit: "kgCO2e/kg" },
-  { typeCode: "TRUCK", factor: 3.5, unit: "kgCO2e/ton-km" },
+  { typeCode: "KEPCO", factor: 0.456, unit: "kgCO₂e /kWh" },
+  { typeCode: "PLASTIC_1", factor: 2.3, unit: "kgCO₂e /kg" },
+  { typeCode: "PLASTIC_2", factor: 3.2, unit: "kgCO₂e /kg" },
+  { typeCode: "TRUCK", factor: 3.5, unit: "kgCO₂e /ton-km" },
 ] as const;
 
 async function main() {
@@ -46,7 +46,7 @@ async function main() {
   }
 
   const typeMap = new Map(
-    (await prisma.activityType.findMany()).map((t) => [t.code, t.id]),
+    (await prisma.activityType.findMany()).map((t) => [t.code, t.id])
   );
 
   for (const f of EMISSION_FACTORS) {
@@ -65,6 +65,7 @@ async function main() {
         factor: f.factor,
         unit: f.unit,
         version: 1,
+        isActive: true,
         startDate: new Date("2025-01-01"),
       },
     });
@@ -72,7 +73,9 @@ async function main() {
 
   const typeCount = await prisma.activityType.count();
   const factorCount = await prisma.emissionFactor.count();
-  console.log(`Seed 완료: activity_types ${typeCount}건, emission_factors ${factorCount}건`);
+  console.log(
+    `Seed 완료: activity_types ${typeCount}건, emission_factors ${factorCount}건`
+  );
 }
 
 main()

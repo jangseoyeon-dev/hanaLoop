@@ -55,7 +55,9 @@ export function TypeCard({
       </div>
       <div className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
         {formatKg(value)}
-        <span className="ml-1 text-xs font-normal text-slate-400">kg</span>
+        <span className="ml-1 text-xs font-normal text-slate-400">
+          kg CO₂e
+        </span>
       </div>
       <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
         <div

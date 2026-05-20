@@ -10,7 +10,7 @@ import {
 } from "@/shared/components/card/TypeCard";
 
 if (typeof window !== "undefined") {
-  Modal.setAppElement("body");
+  Modal.setAppElement("#app-root");
 }
 
 const CATEGORY_ORDER: ActivityCategory[] = [
@@ -23,6 +23,7 @@ type ActivityTypeOption = {
   code: string;
   name: string;
   category: ActivityCategory;
+  unit: string;
 };
 
 export function AddVersionModal({
@@ -33,7 +34,6 @@ export function AddVersionModal({
   setIsAddModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const router = useRouter();
-  const closeModal = () => setIsAddModalOpen(false);
 
   const INITIAL_FORM = {
     category: "" as ActivityCategory | "",
@@ -46,6 +46,12 @@ export function AddVersionModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [typeOptions, setTypeOptions] = useState<ActivityTypeOption[]>([]);
+
+  const closeModal = () => {
+    setForm(INITIAL_FORM);
+    setErrorMessage(null);
+    setIsAddModalOpen(false);
+  };
 
   useEffect(() => {
     if (!isAddModalOpen) return;
@@ -85,6 +91,13 @@ export function AddVersionModal({
       const next = { ...prev, [key]: value };
       if (key === "category" && prev.category !== value) {
         next.name = "";
+        next.unit = "";
+      }
+      if (key === "name" && typeof value === "string") {
+        const matched = typeOptions.find(
+          (opt) => opt.category === prev.category && opt.name === value
+        );
+        next.unit = matched ? matched.unit : "";
       }
       return next;
     });
@@ -178,7 +191,7 @@ export function AddVersionModal({
               onChange={(e) => updateField("name", e.target.value)}
               disabled={!form.category}
               required
-              className={inputClass}
+              className={`${inputClass} disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400`}
             >
               <option value="" disabled>
                 {form.category ? "선택" : "활동 유형을 먼저 선택"}
@@ -205,15 +218,16 @@ export function AddVersionModal({
                 className={`${inputClass} tabular-nums`}
               />
             </Field>
-            <Field label="단위" required>
-              <input
-                type="text"
-                value={form.unit}
-                onChange={(e) => updateField("unit", e.target.value)}
-                placeholder="kgCO₂e/kWh"
-                required
-                className={inputClass}
-              />
+            <Field label="단위">
+              <div
+                aria-readonly="true"
+                className={`flex h-9.5 cursor-not-allowed select-none items-center truncate rounded-lg border border-slate-200 bg-slate-100 px-3 text-sm ${
+                  form.unit ? "font-medium text-slate-600" : "text-slate-400"
+                }`}
+                title={form.unit || undefined}
+              >
+                {form.unit || "활동 선택 시 자동"}
+              </div>
             </Field>
           </div>
 

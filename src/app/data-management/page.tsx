@@ -50,7 +50,12 @@ async function fetchActivityRows(
     orderBy: [{ activityDate: "desc" }, { id: "desc" }],
     include: {
       activityType: { select: { code: true, name: true, category: true } },
-      pcfResults: { select: { carbonEmission: true } },
+      pcfResults: {
+        select: {
+          carbonEmission: true,
+          emissionFactor: { select: { factor: true, unit: true } },
+        },
+      },
     },
   });
 
@@ -65,6 +70,8 @@ async function fetchActivityRows(
     co2e: Number(
       r.pcfResults.reduce((sum, p) => sum + p.carbonEmission, 0).toFixed(2),
     ),
+    factor: r.pcfResults[0]?.emissionFactor?.factor ?? null,
+    factorUnit: r.pcfResults[0]?.emissionFactor?.unit ?? null,
     isDuplicate: r.isDuplicate,
     rowHash: r.rowHash ?? "",
   }));

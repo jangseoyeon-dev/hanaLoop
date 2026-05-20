@@ -13,6 +13,10 @@ import {
   type ActivityCategory,
 } from "@/shared/components/card/TypeCard";
 
+if (typeof window !== "undefined") {
+  Modal.setAppElement("#app-root");
+}
+
 type ActivityTypeOption = {
   id: number;
   code: string;
@@ -36,7 +40,6 @@ export function AddDataModal({
   setIsAddModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const router = useRouter();
-  const closeModal = () => setIsAddModalOpen(false);
 
   const INITIAL_FORM = {
     activity_date: "",
@@ -56,6 +59,12 @@ export function AddDataModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [typeOptions, setTypeOptions] = useState<ActivityTypeOption[]>([]);
+
+  const closeModal = () => {
+    setForm(INITIAL_FORM);
+    setFieldErrors({});
+    setIsAddModalOpen(false);
+  };
 
   useEffect(() => {
     if (!isAddModalOpen) return;
@@ -104,7 +113,7 @@ export function AddDataModal({
       }
       if (key === "name" && typeof value === "string") {
         const matched = typeOptions.find(
-          (opt) => opt.category === prev.category && opt.name === value,
+          (opt) => opt.category === prev.category && opt.name === value
         );
         if (matched) next.unit = matched.unit;
       }
@@ -136,7 +145,7 @@ export function AddDataModal({
     } else if (
       state.category &&
       !typeOptions.some(
-        (opt) => opt.category === state.category && opt.name === state.name,
+        (opt) => opt.category === state.category && opt.name === state.name
       )
     ) {
       errors.name = "유형과 일치하는 활동이 없습니다.";
@@ -167,7 +176,7 @@ export function AddDataModal({
       errors.unit = "단위는 영문/숫자/·/²/³/-/. 만 사용할 수 있습니다.";
     } else if (state.category && state.name) {
       const expected = typeOptions.find(
-        (opt) => opt.category === state.category && opt.name === state.name,
+        (opt) => opt.category === state.category && opt.name === state.name
       )?.unit;
       if (expected && unit.toLowerCase() !== expected.toLowerCase()) {
         errors.unit = `해당 활동의 단위는 "${expected}" 여야 합니다.`;
@@ -208,9 +217,9 @@ export function AddDataModal({
       });
 
       if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as
-          | { error?: string }
-          | null;
+        const body = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
         throw new Error(body?.error ?? "데이터 추가에 실패했습니다.");
       }
 
@@ -292,7 +301,9 @@ export function AddDataModal({
               onChange={(e) => updateField("name", e.target.value)}
               disabled={!form.category}
               aria-invalid={Boolean(fieldErrors.name)}
-              className={inputClassFor(fieldErrors.name)}
+              className={`${inputClassFor(
+                fieldErrors.name
+              )} disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400`}
             >
               <option value="" disabled>
                 {form.category ? "선택" : "활동 유형을 먼저 선택"}
@@ -319,16 +330,16 @@ export function AddDataModal({
                 className={`${inputClassFor(fieldErrors.amount)} tabular-nums`}
               />
             </Field>
-            <Field label="단위" required error={fieldErrors.unit}>
-              <input
-                type="text"
-                value={form.unit}
-                onChange={(e) => updateField("unit", e.target.value)}
-                placeholder="kWh, kg, ton-km"
-                maxLength={UNIT_MAX}
-                aria-invalid={Boolean(fieldErrors.unit)}
-                className={inputClassFor(fieldErrors.unit)}
-              />
+            <Field label="단위">
+              <div
+                aria-readonly="true"
+                className={`flex h-9.5 cursor-not-allowed select-none items-center truncate rounded-lg border border-slate-200 bg-slate-100 px-3 text-sm ${
+                  form.unit ? "font-medium text-slate-600" : "text-slate-400"
+                }`}
+                title={form.unit || undefined}
+              >
+                {form.unit || "활동 선택 시 자동"}
+              </div>
             </Field>
           </div>
         </div>
@@ -357,7 +368,8 @@ export function AddDataModal({
 
 const BASE_INPUT_CLASS =
   "w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:ring-2";
-const INPUT_NORMAL = "border-slate-200 focus:border-brand-400 focus:ring-brand-100";
+const INPUT_NORMAL =
+  "border-slate-200 focus:border-brand-400 focus:ring-brand-100";
 const INPUT_ERROR = "border-rose-300 focus:border-rose-400 focus:ring-rose-100";
 
 function inputClassFor(error: string | undefined): string {

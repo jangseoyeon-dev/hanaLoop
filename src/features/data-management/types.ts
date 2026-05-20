@@ -9,6 +9,8 @@ export type ActivityRow = {
   amount: number;
   unit: string;
   co2e: number;
+  factor: number | null;
+  factorUnit: string | null;
   isDuplicate: boolean;
   rowHash: string;
 };

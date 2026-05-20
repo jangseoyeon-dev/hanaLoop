@@ -6,7 +6,7 @@ import { TYPE_LABEL } from "@/shared/components/card/TypeCard";
 import { formatNumber } from "@/shared/lib/format";
 
 if (typeof window !== "undefined") {
-  Modal.setAppElement("body");
+  Modal.setAppElement("#app-root");
 }
 
 export function CalculationBasisModal({
@@ -20,10 +20,7 @@ export function CalculationBasisModal({
 }) {
   const closeModal = () => setIsModalOpen(false);
 
-  const factor =
-    selectedRow && selectedRow.amount > 0
-      ? selectedRow.co2e / selectedRow.amount
-      : 0;
+  const factor = selectedRow?.factor ?? null;
 
   return (
     <Modal
@@ -71,19 +68,22 @@ export function CalculationBasisModal({
                 CO₂e 계산
               </div>
               <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-slate-700">
-                <span className="font-medium tabular-nums">
-                  {formatNumber(selectedRow.amount)} {selectedRow.unit}
+                <span className="tabular-nums">
+                  {formatNumber(selectedRow.amount)}
+                  <span className="ml-1 text-xs text-slate-500">
+                    {selectedRow.unit}
+                  </span>
                 </span>
                 <span className="text-slate-400">×</span>
                 <span className="tabular-nums">
-                  {factor.toFixed(3)}
+                  {factor !== null ? factor : "—"}
                   <span className="ml-1 text-xs text-slate-500">
-                    kgCO₂e / {selectedRow.unit}
+                    {selectedRow.factorUnit ?? "—"}
                   </span>
                 </span>
                 <span className="text-slate-400">=</span>
                 <span className="text-base font-semibold tabular-nums text-slate-900">
-                  {formatNumber(selectedRow.co2e)} kgCO₂e
+                  {formatNumber(selectedRow.co2e)} kg CO₂e
                 </span>
               </div>
             </div>
