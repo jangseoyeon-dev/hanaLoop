@@ -13,6 +13,11 @@ import {
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 import type { MonthlyTotal } from "@/features/dashboard/types";
+import {
+  ActivityCategory,
+  TYPE_COLOR,
+  TYPE_LABEL,
+} from "@/shared/components/card/TypeCard";
 import { ChartCard } from "./ChartCard";
 
 ChartJS.register(
@@ -37,35 +42,62 @@ export function MonthlyTrendChart({
 }: {
   monthlyTotals: MonthlyTotal[];
 }) {
-  const data = useMemo(
-    () => ({
+  const data = useMemo(() => {
+    const categories = Object.values(ActivityCategory).filter((c) =>
+      monthlyTotals.some((m) => (m.byCategory[c] ?? 0) > 0),
+    );
+    return {
       labels: monthlyTotals.map((m) => formatMonthLabel(m.month)),
       datasets: [
+        ...categories.map((c) => {
+          const color = TYPE_COLOR[c];
+          return {
+            label: TYPE_LABEL[c],
+            data: monthlyTotals.map((m) => m.byCategory[c] ?? 0),
+            borderColor: color,
+            backgroundColor: color,
+            fill: false,
+            tension: 0.35,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            pointBackgroundColor: color,
+          };
+        }),
         {
-          label: "월별 배출량 (kg CO₂e)",
+          label: "전체",
           data: monthlyTotals.map((m) => m.total),
-          borderColor: "#2563eb",
-          backgroundColor: "rgba(37, 99, 235, 0.12)",
-          fill: true,
+          borderColor: "#64748b",
+          backgroundColor: "#64748b",
+          borderDash: [6, 4],
+          fill: false,
           tension: 0.35,
           pointRadius: 3,
           pointHoverRadius: 5,
-          pointBackgroundColor: "#2563eb",
+          pointBackgroundColor: "#64748b",
         },
       ],
-    }),
-    [monthlyTotals],
-  );
+    };
+  }, [monthlyTotals]);
 
   const options: ChartOptions<"line"> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: {
+        display: true,
+        position: "bottom",
+        labels: {
+          usePointStyle: true,
+          pointStyle: "rect",
+          boxWidth: 8,
+          padding: 12,
+          font: { size: 12 },
+        },
+      },
       tooltip: {
         callbacks: {
           label: (ctx) =>
-            ` ${numberFmt.format(ctx.parsed.y as number)} kg CO₂e`,
+            ` ${ctx.dataset.label}: ${numberFmt.format(ctx.parsed.y as number)} kg CO₂e`,
         },
       },
     },
@@ -84,8 +116,8 @@ export function MonthlyTrendChart({
 
   return (
     <ChartCard
-      title="월별 배출량 추이"
-      description="활동일자 기준 월별 합산 추이"
+      title="월별 유형별 배출량 추이"
+      description="활동일자 기준 월별·유형별 배출량 추이"
     >
       <Line data={data} options={options} />
     </ChartCard>

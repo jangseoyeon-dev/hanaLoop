@@ -8,6 +8,7 @@ export type TypeTotal = {
 export type MonthlyTotal = {
   month: string;
   total: number;
+  byCategory: Record<ActivityCategory, number>;
 };
 
 export type ActivityTotal = {

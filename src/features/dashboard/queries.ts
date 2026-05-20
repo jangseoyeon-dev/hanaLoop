@@ -1,6 +1,10 @@
 import { ActivityCategory, type Prisma } from "@prisma/client";
 import { prisma } from "@/shared/lib/prisma";
-import type { ActivityTotal, DashboardSummary } from "./types";
+import type {
+  ActivityTotal,
+  DashboardSummary,
+  MonthlyTotal,
+} from "./types";
 
 export type DashboardFilters = {
   startDate?: string;
@@ -9,7 +13,7 @@ export type DashboardFilters = {
   factorName?: string;
 };
 
-const TOP_ACTIVITIES_LIMIT = 5;
+const TOP_ACTIVITIES_LIMIT = 3;
 
 function parseDate(value: string | undefined): Date | undefined {
   if (!value) return undefined;
@@ -28,6 +32,12 @@ function round2(n: number): number {
 function monthKey(d: Date): string {
   const m = d.getUTCMonth() + 1;
   return `${d.getUTCFullYear()}-${m < 10 ? `0${m}` : m}`;
+}
+
+function emptyCategoryTotals(): Record<ActivityCategory, number> {
+  return Object.fromEntries(
+    Object.values(ActivityCategory).map((c) => [c, 0]),
+  ) as Record<ActivityCategory, number>;
 }
 
 function buildActivityDataWhere(
@@ -66,7 +76,7 @@ export async function loadDashboardSummary(
   });
 
   const byCategory = new Map<ActivityCategory, number>();
-  const byMonth = new Map<string, number>();
+  const byMonth = new Map<string, MonthlyTotal>();
   const byActivity = new Map<string, ActivityTotal>();
   let total = 0;
 
@@ -78,7 +88,15 @@ export async function loadDashboardSummary(
     byCategory.set(category, (byCategory.get(category) ?? 0) + emission);
 
     const mKey = monthKey(r.activityData.activityDate);
-    byMonth.set(mKey, (byMonth.get(mKey) ?? 0) + emission);
+    const month = byMonth.get(mKey);
+    if (month) {
+      month.total += emission;
+      month.byCategory[category] += emission;
+    } else {
+      const byCat = emptyCategoryTotals();
+      byCat[category] = emission;
+      byMonth.set(mKey, { month: mKey, total: emission, byCategory: byCat });
+    }
 
     const aKey = `${category}::${name}`;
     const existing = byActivity.get(aKey);
@@ -92,9 +110,12 @@ export async function loadDashboardSummary(
       category,
       total: round2(value),
     })),
-    monthlyTotals: Array.from(byMonth, ([month, value]) => ({
-      month,
-      total: round2(value),
+    monthlyTotals: Array.from(byMonth.values(), (m) => ({
+      month: m.month,
+      total: round2(m.total),
+      byCategory: Object.fromEntries(
+        Object.entries(m.byCategory).map(([c, v]) => [c, round2(v)]),
+      ) as Record<ActivityCategory, number>,
     })).sort((a, b) => a.month.localeCompare(b.month)),
     topActivities: Array.from(byActivity.values())
       .sort((a, b) => b.total - a.total)

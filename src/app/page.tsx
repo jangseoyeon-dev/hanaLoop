@@ -52,11 +52,13 @@ export default async function Home({
               />
             ))}
           </section>
-          <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <CategoryDonutChart typeTotals={typeTotals} />
-            <CategoryBarChart typeTotals={typeTotals} />
+          <section className="space-y-4">
             <MonthlyTrendChart monthlyTotals={monthlyTotals} />
-            <TopActivitiesChart topActivities={topActivities} />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <CategoryDonutChart typeTotals={typeTotals} />
+              <CategoryBarChart typeTotals={typeTotals} />
+              <TopActivitiesChart topActivities={topActivities} />
+            </div>
           </section>
         </>
       )}
