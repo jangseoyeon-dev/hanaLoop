@@ -192,7 +192,7 @@ export function EmissionFactorTable({ rows }: { rows: EmissionFactorRow[] }) {
   const columns: Column<EmissionFactorRow>[] = [
     { header: "유형", cell: (r) => TYPE_LABEL[r.category] },
     { header: "활동", cell: (r) => r.typeName },
-    { header: "factor", align: "right", cell: (r) => formatNumber(r.factor) },
+    { header: "factor", align: "right", cell: (r) => r.factor },
     { header: "단위", className: "text-slate-500", cell: (r) => r.unit },
     { header: "버전", align: "right", cell: (r) => `v${r.version}` },
     {

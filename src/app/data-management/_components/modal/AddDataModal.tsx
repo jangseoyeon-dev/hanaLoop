@@ -22,7 +22,6 @@ type ActivityTypeOption = {
   unit: string;
 };
 
-const UNIT_FORMAT = /^[A-Za-z0-9·²³./\-]+$/;
 const CATEGORY_ORDER: ActivityCategory[] = [
   "ELECTRICITY",
   "MATERIAL",
@@ -49,7 +48,6 @@ export function AddDataModal({
   type FormState = typeof INITIAL_FORM;
   type FieldErrors = Partial<Record<keyof FormState, string>>;
 
-  const UNIT_MAX = 50;
   const AMOUNT_MAX = 1_000_000_000;
 
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
@@ -164,13 +162,11 @@ export function AddDataModal({
       }
     }
 
+    // 단위는 활동 선택 시 DB 값으로 자동 입력되는 읽기 전용 필드이므로
+    // 존재 여부와 선택한 활동의 단위와 일치하는지만 확인한다.
     const unit = state.unit.trim();
     if (!unit) {
-      errors.unit = "단위를 입력해 주세요.";
-    } else if (unit.length > UNIT_MAX) {
-      errors.unit = `단위는 ${UNIT_MAX}자 이하여야 합니다.`;
-    } else if (!UNIT_FORMAT.test(unit)) {
-      errors.unit = "단위는 영문/숫자/·/²/³/-/. 만 사용할 수 있습니다.";
+      errors.unit = "활동을 선택하면 단위가 자동 입력됩니다.";
     } else if (state.category && state.name) {
       const expected = typeOptions.find(
         (opt) => opt.category === state.category && opt.name === state.name
@@ -190,6 +186,7 @@ export function AddDataModal({
     const errors = validate(form);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
+      toast.error("입력값을 확인해 주세요.");
       return;
     }
 
@@ -327,7 +324,7 @@ export function AddDataModal({
                 className={`${inputClassFor(fieldErrors.amount)} tabular-nums`}
               />
             </Field>
-            <Field label="단위">
+            <Field label="단위" error={fieldErrors.unit}>
               <div
                 aria-readonly="true"
                 className={`flex h-9.5 cursor-not-allowed select-none items-center truncate rounded-lg border border-slate-200 bg-slate-100 px-3 text-sm ${

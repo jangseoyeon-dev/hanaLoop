@@ -39,6 +39,8 @@ export function FilterBox() {
       if (value) params.set(key, value);
       else params.delete(key);
     }
+    // 필터가 바뀌면 결과 범위가 달라지므로 항상 1페이지로 되돌린다.
+    params.delete("page");
     const query = params.toString();
     startTransition(() => {
       router.replace(query ? `${pathname}?${query}` : pathname, {

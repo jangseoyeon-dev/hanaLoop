@@ -17,6 +17,20 @@ export type Column<T> = {
 
 const DEFAULT_PAGE_SIZE = 8;
 
+/**
+ * 서버 사이드 페이지네이션 설정. 지정하면 `rows`를 그대로(현재 페이지만 담겼다고
+ * 가정) 렌더링하고, 페이지/표시 개수 변경은 콜백으로 위임한다. 미지정 시 기존처럼
+ * `rows` 전체를 받아 클라이언트에서 잘라 보여준다.
+ */
+export type ServerPagination = {
+  page: number;
+  pageSize: number;
+  /** 필터 전체 기준 총 건수 (현재 페이지 길이가 아님) */
+  total: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
+};
+
 type DataTableProps<T> = {
   rows: T[];
   columns: Column<T>[];
@@ -28,6 +42,8 @@ type DataTableProps<T> = {
   emptyState?: ReactNode;
   /** 최외곽 래퍼 클래스 */
   className?: string;
+  /** 지정 시 서버 사이드 페이지네이션 모드로 동작 */
+  serverPagination?: ServerPagination;
 };
 
 export function DataTable<T>({
@@ -38,17 +54,29 @@ export function DataTable<T>({
   rowClassName = "text-slate-700 transition-colors hover:bg-slate-50",
   emptyState,
   className,
+  serverPagination,
 }: DataTableProps<T>) {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [clientPage, setClientPage] = useState(1);
+  const [clientPageSize, setClientPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   useEffect(() => {
-    setPage(1);
-  }, [rows, pageSize]);
+    setClientPage(1);
+  }, [rows, clientPageSize]);
 
+  const isServer = Boolean(serverPagination);
+
+  const page = serverPagination?.page ?? clientPage;
+  const pageSize = serverPagination?.pageSize ?? clientPageSize;
+  const total = serverPagination?.total ?? rows.length;
+  const onPageChange = serverPagination?.onPageChange ?? setClientPage;
+  const onPageSizeChange =
+    serverPagination?.onPageSizeChange ?? setClientPageSize;
+
+  // 서버 모드에서는 rows가 이미 현재 페이지만 담고 있으므로 자르지 않는다.
   const start = (page - 1) * pageSize;
-  const paginated = rows.slice(start, start + pageSize);
-  const isEmpty = rows.length === 0;
+  const paginated = isServer ? rows : rows.slice(start, start + pageSize);
+  // 서버 모드: 현재 페이지가 비어도 다른 페이지엔 데이터가 있을 수 있으므로 total 기준.
+  const isEmpty = isServer ? total === 0 : rows.length === 0;
 
   return (
     <div className={className}>
@@ -93,13 +121,13 @@ export function DataTable<T>({
           </tbody>
         </table>
       </div>
-      {rows.length > 0 && (
+      {total > 0 && (
         <Pagination
           page={page}
           pageSize={pageSize}
-          total={rows.length}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
+          total={total}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
         />
       )}
     </div>

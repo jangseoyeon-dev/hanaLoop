@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { type ActivityRow } from "../../_lib/types";
 import { formatNumber } from "@/shared/lib/format";
 import { TYPE_LABEL } from "@/app/(dashboard)/_components/TypeCard";
@@ -35,13 +36,45 @@ const columns: Column<ActivityRow>[] = [
   },
 ];
 
-export function ActivityTable({ rows }: { rows: ActivityRow[] }) {
+type ActivityTableProps = {
+  rows: ActivityRow[];
+  page: number;
+  pageSize: number;
+  total: number;
+};
+
+export function ActivityTable({
+  rows,
+  page,
+  pageSize,
+  total,
+}: ActivityTableProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [, startTransition] = useTransition();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<ActivityRow | null>(null);
 
   const openRow = (r: ActivityRow) => {
     setSelectedRow(r);
     setIsModalOpen(true);
+  };
+
+  // 페이지/표시 개수를 URL 쿼리에 반영 → 서버에서 해당 구간만 다시 조회
+  const updateParams = (patch: Record<string, string>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(patch)) {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    }
+    const query = params.toString();
+    startTransition(() => {
+      router.replace(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      });
+    });
   };
 
   return (
@@ -53,6 +86,15 @@ export function ActivityTable({ rows }: { rows: ActivityRow[] }) {
         onRowClick={openRow}
         rowClassName="text-slate-700 transition-colors hover:bg-slate-100"
         className="overflow-x-auto mt-5"
+        serverPagination={{
+          page,
+          pageSize,
+          total,
+          onPageChange: (next) => updateParams({ page: String(next) }),
+          // 표시 개수 변경 시 1페이지로 리셋
+          onPageSizeChange: (size) =>
+            updateParams({ size: String(size), page: "1" }),
+        }}
         emptyState={
           <div className="flex flex-col items-center justify-center text-center">
             <div className="flex size-12 items-center justify-center rounded-full bg-slate-50 text-2xl">
